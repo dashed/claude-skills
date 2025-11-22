@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- git-absorb skill for automatically folding uncommitted changes into appropriate commits
+
 ## [0.1.0] - 2025-11-22
 
 ### Added

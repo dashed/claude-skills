@@ -16,6 +16,14 @@
       "repository": "https://github.com/anthropics/skills/tree/main/skill-creator",
       "strict": false,
       "skills": ["./"]
+    },
+    {
+      "name": "git-absorb",
+      "source": "./plugins/git-absorb",
+      "description": "Automatically fold uncommitted changes into appropriate commits. Use for applying review feedback and maintaining atomic commit history.",
+      "repository": "https://github.com/tummychow/git-absorb",
+      "strict": false,
+      "skills": ["./"]
     }
   ]
 }

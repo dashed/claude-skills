@@ -22,6 +22,7 @@ A curated collection of Agent Skills for extending Claude Code's capabilities. T
 | Skill | Description | Source |
 |-------|-------------|--------|
 | **skill-creator** | Guide for creating effective skills. Use when creating or updating skills that extend Claude's capabilities. | [Anthropic](https://github.com/anthropics/skills/tree/main/skill-creator) |
+| **git-absorb** | Automatically fold uncommitted changes into appropriate commits. Use for applying review feedback and maintaining atomic commit history. | [tummychow](https://github.com/tummychow/git-absorb) |
 
 ## Usage
 
