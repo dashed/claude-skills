@@ -1,0 +1,12 @@
+{
+  "name": "personal-skills",
+  "owner": {
+    "name": "Personal",
+    "email": "user@example.com"
+  },
+  "metadata": {
+    "description": "Personal marketplace for custom skills and plugins",
+    "version": "0.1.0"
+  },
+  "plugins": []
+}
