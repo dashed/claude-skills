@@ -1,12 +1,21 @@
 {
-  "name": "personal-skills",
+  "name": "alberto-skills",
   "owner": {
-    "name": "Personal",
-    "email": "user@example.com"
+    "name": "Alberto Leal",
+    "email": "mail4alberto@gmail.com"
   },
   "metadata": {
     "description": "Personal marketplace for custom skills and plugins",
     "version": "0.1.0"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "skill-creator",
+      "source": "./plugins/skill-creator",
+      "description": "Tool for creating and managing Agent Skills. Sourced from Anthropic's official skills repository.",
+      "repository": "https://github.com/anthropics/skills/tree/main/skill-creator",
+      "strict": false,
+      "skills": ["./"]
+    }
+  ]
 }
