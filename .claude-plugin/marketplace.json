@@ -11,17 +11,29 @@
   "plugins": [
     {
       "name": "skill-creator",
+      "version": "1.0.0",
       "source": "./plugins/skill-creator",
       "description": "Tool for creating and managing Agent Skills. Sourced from Anthropic's official skills repository.",
+      "author": {
+        "name": "Anthropic"
+      },
       "repository": "https://github.com/anthropics/skills/tree/main/skill-creator",
+      "license": "Apache-2.0",
+      "keywords": ["skills", "development", "creation", "tooling"],
       "strict": false,
       "skills": ["./"]
     },
     {
       "name": "git-absorb",
+      "version": "1.0.0",
       "source": "./plugins/git-absorb",
       "description": "Automatically fold uncommitted changes into appropriate commits. Use for applying review feedback and maintaining atomic commit history.",
-      "repository": "https://github.com/tummychow/git-absorb",
+      "author": {
+        "name": "Alberto Leal"
+      },
+      "repository": "https://github.com/dashed/claude-skills/tree/master/plugins/git-absorb",
+      "license": "MIT",
+      "keywords": ["git", "workflow", "commits", "rebase", "fixup"],
       "strict": false,
       "skills": ["./"]
     }

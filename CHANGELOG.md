@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - git-absorb skill for automatically folding uncommitted changes into appropriate commits
+- Version metadata (v1.0.0) for both plugins
+- Author information for plugin attribution
+- License information (Apache-2.0 for skill-creator, MIT for git-absorb)
+- Keywords for better plugin discovery and categorization
 
 ## [0.1.0] - 2025-11-22
 
