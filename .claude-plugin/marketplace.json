@@ -1,5 +1,5 @@
 {
-  "name": "alberto-skills",
+  "name": "alberto-marketplace",
   "owner": {
     "name": "Alberto Leal",
     "email": "mail4alberto@gmail.com"
@@ -31,7 +31,7 @@
       "author": {
         "name": "Alberto Leal"
       },
-      "repository": "https://github.com/dashed/claude-skills/tree/master/plugins/git-absorb",
+      "repository": "https://github.com/dashed/claude-marketplace/tree/master/plugins/git-absorb",
       "license": "MIT",
       "keywords": ["git", "workflow", "commits", "rebase", "fixup"],
       "strict": false,

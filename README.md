@@ -1,4 +1,4 @@
-# Personal Skills Marketplace
+# Alberto's Claude Marketplace
 
 > A local marketplace for personal Claude Code skills and plugins.
 
@@ -8,10 +8,10 @@ A curated collection of Agent Skills for extending Claude Code's capabilities. T
 
 ```bash
 # 1. Add the marketplace
-/plugin marketplace add /path/to/claude-skills
+/plugin marketplace add /path/to/claude-marketplace
 
 # 2. Install skills
-/plugin  # Browse and install plugins → alberto-skills
+/plugin  # Browse and install plugins → alberto-marketplace
 
 # 3. Restart Claude Code to load new skills
 /exit
@@ -22,26 +22,26 @@ A curated collection of Agent Skills for extending Claude Code's capabilities. T
 | Skill | Description | Source |
 |-------|-------------|--------|
 | **skill-creator** | Guide for creating effective skills. Use when creating or updating skills that extend Claude's capabilities. | [Anthropic](https://github.com/anthropics/skills/tree/main/skill-creator) |
-| **git-absorb** | Automatically fold uncommitted changes into appropriate commits. Use for applying review feedback and maintaining atomic commit history. Tool: [git-absorb](https://github.com/tummychow/git-absorb) | [dashed](https://github.com/dashed/claude-skills/tree/master/plugins/git-absorb) |
+| **git-absorb** | Automatically fold uncommitted changes into appropriate commits. Use for applying review feedback and maintaining atomic commit history. Tool: [git-absorb](https://github.com/tummychow/git-absorb) | [dashed](https://github.com/dashed/claude-marketplace/tree/master/plugins/git-absorb) |
 
 ## Usage
 
 ### Add this marketplace locally
 
 ```bash
-/plugin marketplace add /path/to/claude-skills
+/plugin marketplace add /path/to/claude-marketplace
 ```
 
 ### Update the marketplace
 
 ```bash
-/plugin marketplace update alberto-skills
+/plugin marketplace update alberto-marketplace
 ```
 
 ### Install skills
 
 1. Select `/plugin` and then `Browse and install plugins`
-2. Select `alberto-skills`
+2. Select `alberto-marketplace`
 3. Choose the skills to install
 4. Restart Claude Code
 
@@ -82,7 +82,7 @@ cp -r plugins/your-skill .claude/skills/
 ## Structure
 
 ```
-claude-skills/
+claude-marketplace/
 ├── .claude-plugin/
 │   └── marketplace.json      # Marketplace manifest
 ├── plugins/
