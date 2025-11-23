@@ -90,6 +90,9 @@ test-tmux: test-tmux-build ## Run all tmux tool tests in Docker
 	@echo "$(YELLOW)Running find-sessions.sh tests...$(NC)"
 	$(DOCKER_RUN) tests/bash/test-find-sessions.sh
 	@echo ""
+	@echo "$(YELLOW)Running safe-send.sh tests...$(NC)"
+	$(DOCKER_RUN) tests/bash/test-safe-send.sh
+	@echo ""
 	@echo "$(GREEN)✓ All tmux tests passed$(NC)"
 
 test-tmux/%: test-tmux-build ## Run specific tmux test (e.g., make test-tmux/pane-health)
@@ -107,6 +110,9 @@ test-tmux-local: ## Run tmux tests locally (without Docker)
 	@echo ""
 	@echo "$(YELLOW)Running find-sessions.sh tests...$(NC)"
 	tests/bash/test-find-sessions.sh
+	@echo ""
+	@echo "$(YELLOW)Running safe-send.sh tests...$(NC)"
+	tests/bash/test-safe-send.sh
 	@echo ""
 	@echo "$(GREEN)✓ All tmux tests passed$(NC)"
 

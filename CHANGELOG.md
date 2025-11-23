@@ -7,11 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-11-23
+
 ### Added
+- tmux skill: safe-send.sh tool for reliable command sending with automatic retries and prompt waiting (367 lines, 21/21 tests passing)
+- tmux skill: Automatic retry mechanism with exponential backoff (0.5s → 1s → 2s) for transient failures
+- tmux skill: Integration with pane-health.sh for pre-flight readiness checks and wait-for-text.sh for prompt synchronization
+- tmux skill: Dual-mode operation (normal mode executes commands, literal mode types text without Enter)
+- tmux skill: Comprehensive test suite for safe-send.sh covering error handling, retries, modes, and control sequences
 - tmux skill: pane-health.sh tool for comprehensive health checking (360 lines, 18/18 tests passing)
 - tmux skill: Health checking with 5 exit codes (healthy, dead, missing, zombie, server not running)
 - tmux skill: JSON and text output formats for pane-health.sh
-- tmux skill: Comprehensive notes/tmux/README.md documentation (52 → 606 lines, 11x expansion)
+- tmux skill: Comprehensive notes/tmux/README.md documentation (52 → 642 lines, 12x expansion)
 - tmux skill: Detailed architecture documentation (socket isolation, session management, input/output handling)
 - tmux skill: Interactive tool support recipes (Python REPL, gdb debugger, and others)
 - tmux skill: Common usage patterns section with 4 real-world examples
@@ -26,7 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - git-absorb skill: Reduced SKILL.md size by 14% (269 → 232 lines) while improving discoverability
 - tmux skill: Enhanced documentation emphasizing PYTHON_BASIC_REPL=1 as critical requirement
 - tmux skill: Updated all Python REPL examples to include PYTHON_BASIC_REPL=1
-- tmux skill: Enhanced SKILL.md with pane-health.sh documentation (+53 lines)
+- tmux skill: Enhanced SKILL.md with safe-send.sh and pane-health.sh documentation (+111 lines total)
+- tmux skill: Updated "Sending input safely" section to recommend safe-send.sh as primary method
+- tmux skill: Enhanced notes/tmux/README.md with safe-send.sh documentation and updated helper tools count to 4
+- tmux skill: Updated "Input Handling" section to recommend safe-send.sh for production use
+- tmux skill: Removed safe-send.sh from "Future Enhancements" section (now implemented)
 - tmux skill: Version bumped to 1.1.0
 
 ## [0.2.0] - 2025-11-23
@@ -69,6 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Marketplace metadata and owner information
 - Plugin entry with `skills` field for proper skill loading
 
-[Unreleased]: https://github.com/dashed/claude-marketplace/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/dashed/claude-marketplace/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/dashed/claude-marketplace/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dashed/claude-marketplace/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dashed/claude-marketplace/releases/tag/v0.1.0

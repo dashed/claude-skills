@@ -65,7 +65,11 @@ tmux -S "$SOCKET" kill-server
 
 ### Input Handling
 
-**send-keys modes:**
+**Recommended: Use safe-send.sh for reliable sending**
+
+For production use, prefer `./tools/safe-send.sh` which handles retries, readiness checks, and prompt waiting automatically. See [Helper Tools](#helper-tools) section for details.
+
+**Direct send-keys modes (manual approach):**
 1. **Literal mode** (preferred): `send-keys -l -- "$text"`
    - Sends text character-by-character, no shell interpretation
    - Safe for special characters, quotes, etc.
@@ -158,7 +162,7 @@ tmux -S "$SOCKET" send-keys -t session:0.0 -l -- 'print("hello")'
 
 ## Helper Tools
 
-The tmux skill includes three battle-tested helper scripts:
+The tmux skill includes four battle-tested helper scripts:
 
 ### 1. wait-for-text.sh
 
@@ -261,6 +265,41 @@ fi
 ```
 
 **Testing**: Comprehensive test suite validates all failure modes (18/18 tests passing, 100% success rate). See test results in implementation history.
+
+### 4. safe-send.sh
+
+**Purpose**: Send keystrokes reliably with automatic retries, readiness checks, and optional prompt waiting.
+
+**Key features:**
+- Automatic retry with exponential backoff (0.5s → 1s → 2s)
+- Pre-flight health check using pane-health.sh
+- Optional prompt waiting using wait-for-text.sh
+- Normal mode (execute) and literal mode (type text)
+- Supports both -S (socket path) and -L (socket name)
+- Configurable timeout, retries, and retry interval
+
+**Common usage:**
+```bash
+# Send Python command and wait for prompt
+./tools/safe-send.sh -S "$SOCKET" -t session:0.0 -c "print('hello')" -w ">>>" -T 10
+
+# Send text in literal mode (no Enter)
+./tools/safe-send.sh -S "$SOCKET" -t session:0.0 -c "some text" -l
+
+# Send with custom retry settings
+./tools/safe-send.sh -t session:0.0 -c "ls" -r 5 -i 1.0
+```
+
+**Implementation notes:**
+- Integrates with pane-health.sh for readiness verification before sending
+- Uses exponential backoff formula: `base_interval * (2 ^ (attempt - 1))`
+- Supports empty commands (sends just Enter, useful for prompts)
+- Normal mode appends Enter to execute commands, literal mode sends exact characters
+- Integrates with wait-for-text.sh when `-w` pattern specified for synchronization
+- Exit codes distinguish between send failures (1), timeout waiting (2), pane not ready (3), and invalid args (4)
+- Handles both -S and -L socket modes (health check skipped for -L due to tool limitations)
+
+**Testing**: Comprehensive test suite with 21/21 tests passing (100% success rate). Tests cover error handling, pane readiness, normal/literal modes, prompt waiting, retry logic, named sockets, verbose mode, and control sequences.
 
 ## Key Insights
 
@@ -580,21 +619,21 @@ Comprehensive test suite validates all failure modes:
 - [wait-for-text.sh](../../plugins/tmux/tools/wait-for-text.sh)
 - [find-sessions.sh](../../plugins/tmux/tools/find-sessions.sh)
 - [pane-health.sh](../../plugins/tmux/tools/pane-health.sh)
+- [safe-send.sh](../../plugins/tmux/tools/safe-send.sh)
 
 ## Version
 
-Documented for tmux skill v1.0.1+ (includes pane-health.sh)
+Documented for tmux skill v1.1.0+ (includes safe-send.sh)
 
 **Recent additions:**
-- v1.0.1: Added socket support to wait-for-text.sh
-- Current: Added pane-health.sh for comprehensive health checking
+- v1.0.1: Added socket support to wait-for-text.sh and pane-health.sh
+- v1.1.0: Added safe-send.sh for reliable command sending with retries
 
 ## Future Enhancements
 
 Potential helper tools to improve reliability and usability:
 
 **Critical priority:**
-- `safe-send.sh` - Reliable command sending with retries and readiness checking
 - `cleanup-sessions.sh` - Automated session cleanup by age/idle time/pattern
 
 **High priority:**

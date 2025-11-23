@@ -51,7 +51,19 @@ This must ALWAYS be printed right after a session was started and once again at 
 
 ## Sending input safely
 
-- Prefer literal sends to avoid shell splitting: `tmux -L "$SOCKET" send-keys -t target -l -- "$cmd"`
+**Recommended: Use safe-send.sh for reliable command sending**
+
+The `./tools/safe-send.sh` helper provides automatic retries, readiness checks, and optional prompt waiting:
+
+```bash
+./tools/safe-send.sh -S "$SOCKET" -t "$SESSION":0.0 -c "print('hello')" -w ">>>"
+```
+
+See the [Helper: safe-send.sh](#helper-safe-sendsh) section below for full documentation.
+
+**Direct tmux send-keys (manual approach):**
+
+- Prefer literal sends to avoid shell splitting: `tmux -S "$SOCKET" send-keys -t target -l -- "$cmd"`
 - When composing inline commands, use single quotes or ANSI C quoting to avoid expansion: `tmux ... send-keys -t target -- $'python3 -m http.server 8000'`.
 - To send control keys: `tmux ... send-keys -t target C-c`, `C-d`, `C-z`, `Escape`, etc.
 
@@ -166,4 +178,60 @@ if ./tools/pane-health.sh -t "$SESSION":0.0 --format text; then
 else
   echo "Pane is not healthy (exit code: $?)"
 fi
+```
+
+## Helper: safe-send.sh
+
+`./tools/safe-send.sh` sends keystrokes to tmux panes with automatic retries, readiness checks, and optional prompt waiting. Prevents dropped commands that can occur when sending to busy or not-yet-ready panes.
+
+```bash
+./tools/safe-send.sh -t session:0.0 -c "command" [-S socket] [-l] [-w pattern] [-T timeout] [-r retries]
+```
+
+**Key options:**
+- `-t`/`--target` pane target (required)
+- `-c`/`--command` command to send (required; empty string sends just Enter)
+- `-S`/`--socket` tmux socket path (for custom sockets via -S)
+- `-L`/`--socket-name` tmux socket name (for named sockets via -L)
+- `-l`/`--literal` use literal mode (send text without executing)
+- `-w`/`--wait` wait for this pattern after sending
+- `-T`/`--timeout` timeout in seconds (default: 30)
+- `-r`/`--retries` max retry attempts (default: 3)
+- `-i`/`--interval` base retry interval in seconds (default: 0.5)
+- `-v`/`--verbose` verbose output for debugging
+
+**Exit codes:**
+- `0` - Command sent successfully
+- `1` - Failed to send after retries
+- `2` - Timeout waiting for prompt
+- `3` - Pane not ready
+- `4` - Invalid arguments
+
+**Modes:**
+- **Normal mode (default):** Sends command and presses Enter (executes in shell/REPL)
+- **Literal mode (-l):** Sends exact characters without Enter (typing text)
+
+**Use cases:**
+- Send commands to Python REPL with automatic retry and prompt waiting
+- Send gdb commands and wait for the gdb prompt
+- Critical commands that must not be dropped
+- Send commands immediately after session creation
+- Automate interactions with any interactive CLI tool
+
+**Examples:**
+
+```bash
+# Send Python command and wait for prompt
+SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets
+SOCKET="$SOCKET_DIR/claude.sock"
+./tools/safe-send.sh -S "$SOCKET" -t "$SESSION":0.0 -c "print('hello')" -w ">>>" -T 10
+
+# Send text in literal mode (no Enter)
+./tools/safe-send.sh -S "$SOCKET" -t "$SESSION":0.0 -c "some text" -l
+
+# Send with custom retry settings
+./tools/safe-send.sh -S "$SOCKET" -t "$SESSION":0.0 -c "ls" -r 5 -i 1.0
+
+# Send control sequence
+./tools/safe-send.sh -S "$SOCKET" -t "$SESSION":0.0 -c "C-c"
 ```

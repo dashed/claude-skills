@@ -12,17 +12,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - JSON and text output formats for pane-health.sh
 - Comprehensive test suite for pane-health.sh (18/18 tests passing, 100% success rate)
 - pane-health.sh validates: server running, session exists, pane exists, pane dead flag, process running via ps
+- safe-send.sh tool for reliable command sending with automatic retries and prompt waiting (367 lines, 21/21 tests passing)
+- Automatic retry mechanism with exponential backoff (0.5s → 1s → 2s) for transient failures
+- Integration with pane-health.sh for pre-flight readiness checks and wait-for-text.sh for prompt synchronization
+- Dual-mode operation (normal mode executes commands, literal mode types text without Enter)
+- Comprehensive test suite for safe-send.sh covering error handling, retries, modes, and control sequences
 
 ### Changed
-- Enhanced SKILL.md with pane-health.sh documentation (+53 lines)
+- Enhanced SKILL.md with pane-health.sh and safe-send.sh documentation (+111 lines total)
 - Added pane-health.sh section with usage examples, exit codes, and JSON output schema
-- Comprehensive notes/tmux/README.md update (52 → 606 lines, 11x expansion)
+- Updated "Sending input safely" section to recommend safe-send.sh as primary method
+- Comprehensive notes/tmux/README.md update (52 → 642 lines, 12x expansion)
 - Added detailed "How the tmux Skill Works" section covering architecture, socket isolation, session management, input handling, output capture, synchronization, and health checking
-- Added documentation for all 3 helper tools (wait-for-text.sh, find-sessions.sh, pane-health.sh)
+- Updated "Input Handling" section to recommend safe-send.sh for production use
+- Added documentation for all 4 helper tools (wait-for-text.sh, find-sessions.sh, pane-health.sh, safe-send.sh)
 - Added Interactive Tool Support section with recipes for Python REPL, gdb, and other tools
 - Added Common Patterns section with 4 real-world usage patterns
 - Added Limitations & Gotchas section documenting known issues and common mistakes
-- Added Testing section documenting pane-health.sh test results and coverage
+- Added Testing section documenting pane-health.sh and safe-send.sh test results and coverage
+- Removed safe-send.sh from "Future Enhancements" section (now implemented)
 
 ## [1.0.1] - 2025-11-23
 
