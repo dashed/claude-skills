@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-11-23
+
 ### Added
 - tmux skill: Session registry system for automatic session tracking (~80% boilerplate reduction)
 - tmux skill: tools/lib/registry.sh library for session management (415 lines, 28/28 tests passing)
@@ -119,7 +121,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Marketplace metadata and owner information
 - Plugin entry with `skills` field for proper skill loading
 
-[Unreleased]: https://github.com/dashed/claude-marketplace/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/dashed/claude-marketplace/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/dashed/claude-marketplace/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/dashed/claude-marketplace/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dashed/claude-marketplace/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dashed/claude-marketplace/releases/tag/v0.1.0

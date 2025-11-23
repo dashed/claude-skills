@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-11-23
+
 ### Changed
 - Enhanced test-safe-send.sh with 8 unit tests for session registry features (29 total tests, all passing)
 - Enhanced test-wait-for-text.sh with 8 unit tests for session registry features (21 total tests, all passing)
