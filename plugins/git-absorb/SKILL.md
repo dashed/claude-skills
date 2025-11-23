@@ -17,14 +17,19 @@ Use git-absorb when:
 - **Maintaining atomic commits**: Want to keep commits focused without creating "fixes" or "oops" commits
 - **Avoiding manual rebasing**: Don't want to manually identify which commits need which changes
 
-## Installation Check
+## Prerequisites
 
-Verify git-absorb is installed:
+**CRITICAL**: Before proceeding, you MUST verify that git-absorb is installed:
+
 ```bash
 git absorb --version
 ```
 
-If not installed, install via package manager:
+**If git-absorb is not installed:**
+- **DO NOT** attempt to install it automatically
+- **STOP** and inform the user that git-absorb is required
+- **RECOMMEND** manual installation with the following instructions:
+
 ```bash
 # macOS
 brew install git-absorb
@@ -32,10 +37,34 @@ brew install git-absorb
 # Linux (Debian/Ubuntu)
 apt install git-absorb
 
+# Arch Linux
+pacman -S git-absorb
+
+# Cargo (all platforms)
+cargo install git-absorb
+
 # Other systems: see https://github.com/tummychow/git-absorb
 ```
 
+**If git-absorb is not available, exit gracefully and do not proceed with the workflow below.**
+
+### Important Default Behaviors
+
+Before using git-absorb, understand these key defaults:
+
+**Author Filtering**: By default, git-absorb **only modifies commits you authored**. It will not absorb changes into commits made by teammates.
+- To absorb into any author's commits, use `git absorb --force-author`
+- Or configure globally: `git config absorb.forceAuthor true`
+
+**Stack Size Limit**: By default, git-absorb searches only the **last 10 commits**. If you're working on a larger feature branch, you may need to:
+- Use `--base <branch>` to specify a range (e.g., `--base main`)
+- Or increase the limit in `.gitconfig` (see Configuration section below)
+
+**Staged Changes Only**: git-absorb only considers changes in the git index (staging area). Unstaged changes are ignored.
+
 ## Basic Workflow
+
+**ONLY proceed with this workflow if git-absorb is confirmed to be installed.**
 
 ### Step 1: Make Your Changes
 
@@ -144,6 +173,50 @@ git absorb --force
 
 Unabsorbable changes remain staged for manual handling.
 
+## Configuration
+
+git-absorb supports several configuration options via `.gitconfig`. These are the most important ones:
+
+### Increase Stack Size (Critical)
+
+If you see this warning:
+```
+WARN stack limit reached, limit: 10
+```
+
+Increase the stack size in your `.gitconfig`:
+
+```bash
+git config absorb.maxStack 50
+```
+
+Or set it globally:
+
+```bash
+git config --global absorb.maxStack 50
+```
+
+By default, git-absorb only searches the last 10 commits. For larger feature branches, increase this to 50 or higher.
+
+### Other Useful Configurations
+
+**Auto-stage all changes** when nothing is staged (convenience feature):
+```bash
+git config absorb.autoStageIfNothingStaged true
+```
+
+**One fixup per commit** instead of per hunk (cleaner history):
+```bash
+git config absorb.oneFixupPerCommit true
+```
+
+**Allow absorbing into teammates' commits**:
+```bash
+git config absorb.forceAuthor true
+```
+
+For a complete list of configuration options, see the [official documentation](https://github.com/tummychow/git-absorb/blob/master/Documentation/git-absorb.adoc#configuration).
+
 ## Recovery
 
 If something goes wrong or you're not satisfied:
@@ -173,13 +246,21 @@ This ensures changes are assigned to the correct commits based on line modificat
 
 ## Troubleshooting
 
+**"WARN stack limit reached, limit: 10"**
+- git-absorb only searches the last 10 commits by default
+- Increase the stack size: `git config absorb.maxStack 50`
+- Or use `--base <branch>` to specify the range (e.g., `--base main`)
+- See the Configuration section above for details
+
 **"Can't find appropriate commit for these changes"**
 - The changes may be too new (modify lines not in recent commits)
-- Try increasing the range with `--base`
+- Try increasing the range with `--base <branch>`
+- Try increasing stack size: `git config absorb.maxStack 50`
 - Changes may need to be in a new commit
 
 **"Command not found: git-absorb"**
-- Not installed. See Installation Check section above
+- Not installed. See Prerequisites section above for manual installation instructions
+- Do NOT attempt automatic installation
 
 **"Conflicts during rebase"**
 - Some changes couldn't be absorbed cleanly

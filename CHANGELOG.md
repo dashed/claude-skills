@@ -9,10 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - git-absorb skill for automatically folding uncommitted changes into appropriate commits
+- Comprehensive documentation analysis (ANALYSIS.md) for git-absorb skill comparing against official documentation
 - Version metadata (v1.0.0) for both plugins
 - Author information for plugin attribution
 - License information (Apache-2.0 for skill-creator, MIT for git-absorb)
 - Keywords for better plugin discovery and categorization
+
+### Changed
+- git-absorb skill: Removed automatic installation attempts (now recommends manual installation only)
+- git-absorb skill: Added important default behaviors section explaining author filtering and stack size limits
+- git-absorb skill: Added configuration section with critical maxStack setting and other useful options
+- git-absorb skill: Enhanced troubleshooting with stack limit warning solutions
 
 ## [0.1.0] - 2025-11-22
 
