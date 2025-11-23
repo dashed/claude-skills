@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - git-absorb skill for automatically folding uncommitted changes into appropriate commits
 - Comprehensive documentation analysis (ANALYSIS.md) for git-absorb skill comparing against official documentation
+- tmux skill for remote controlling tmux sessions for interactive CLIs (python, gdb, etc.) from [mitsuhiko/agent-commands](https://github.com/mitsuhiko/agent-commands/tree/main/skills/tmux)
+- tmux skill helper tools: find-sessions.sh and wait-for-text.sh for session management and synchronization
 - Version metadata (v1.0.0) for both plugins
 - Author information for plugin attribution
-- License information (Apache-2.0 for skill-creator, MIT for git-absorb)
+- License information (Apache-2.0 for skill-creator, MIT for git-absorb, Vibecoded for tmux)
 - Keywords for better plugin discovery and categorization
 
 ### Changed

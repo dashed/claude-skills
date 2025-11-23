@@ -23,6 +23,7 @@ A curated collection of Agent Skills for extending Claude Code's capabilities. T
 |-------|-------------|--------|
 | **skill-creator** | Guide for creating effective skills. Use when creating or updating skills that extend Claude's capabilities. | [Anthropic](https://github.com/anthropics/skills/tree/main/skill-creator) |
 | **git-absorb** | Automatically fold uncommitted changes into appropriate commits. Use for applying review feedback and maintaining atomic commit history. Tool: [git-absorb](https://github.com/tummychow/git-absorb) | [dashed](https://github.com/dashed/claude-marketplace/tree/master/plugins/git-absorb) |
+| **tmux** | Remote control tmux sessions for interactive CLIs (python, gdb, etc.) by sending keystrokes and scraping pane output. Use for debugging, REPL interaction, and automating terminal workflows. Works with stock tmux on Linux/macOS. | [mitsuhiko](https://github.com/mitsuhiko/agent-commands/tree/main/skills/tmux) |
 
 ## Usage
 

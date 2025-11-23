@@ -36,6 +36,20 @@
       "keywords": ["git", "workflow", "commits", "rebase", "fixup"],
       "strict": false,
       "skills": ["./"]
+    },
+    {
+      "name": "tmux",
+      "version": "1.0.0",
+      "source": "./plugins/tmux",
+      "description": "Remote control tmux sessions for interactive CLIs (python, gdb, etc.) by sending keystrokes and scraping pane output.",
+      "author": {
+        "name": "Armin Ronacher"
+      },
+      "repository": "https://github.com/mitsuhiko/agent-commands/tree/main/skills/tmux",
+      "license": "Vibecoded",
+      "keywords": ["tmux", "terminal", "multiplexer", "interactive", "debugging", "repl"],
+      "strict": false,
+      "skills": ["./"]
     }
   ]
 }
