@@ -4,6 +4,18 @@ All notable changes to the tmux skill in this marketplace will be documented in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Changed
+- Enhanced test-safe-send.sh with 8 unit tests for session registry features (29 total tests, all passing)
+- Enhanced test-wait-for-text.sh with 8 unit tests for session registry features (21 total tests, all passing)
+- Enhanced test-pane-health.sh with 8 unit tests for session registry features (26 total tests, all passing)
+- Test coverage now includes -s flag validation, auto-detection, and priority resolution (24 new tests)
+
+### Fixed
+- Fixed bash syntax errors in test cleanup functions (replaced invalid glob pattern redirection with shopt -s nullglob)
+- Fixed test logic in cleanup-sessions test for --older-than flag validation
+
 ## [1.1.0] - 2025-11-23
 
 ### Added

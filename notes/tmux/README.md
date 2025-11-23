@@ -14,13 +14,20 @@ The tmux skill enables remote control of tmux sessions for interactive CLI tools
 
 The tmux skill operates on a **socket isolation pattern** where each agent session uses a dedicated tmux server on a custom socket, preventing interference with the user's personal tmux sessions.
 
-**Core workflow:**
+**Core workflow (Session Registry - Recommended):**
+1. Create and register session (`create-session.sh -n name --python`)
+2. Send commands using session name (`safe-send.sh -s name -c "code"`)
+3. Wait for prompts/output (`wait-for-text.sh -s name -p ">>>"`)
+4. Health check via session name (`pane-health.sh -s name`)
+5. Manage sessions (`list-sessions.sh`, `cleanup-sessions.sh`)
+
+**Core workflow (Manual Socket Management - Alternative):**
 1. Create isolated tmux socket (`tmux -S /path/to/socket.sock`)
 2. Start interactive program in session (`new-session`, `send-keys`)
 3. Send commands via keystroke simulation (`send-keys -l`)
-4. Wait for prompts/output (`wait-for-text.sh`)
+4. Wait for prompts/output (`wait-for-text.sh -S socket -t target`)
 5. Capture output for parsing (`capture-pane -p -J`)
-6. Health check before operations (`pane-health.sh`)
+6. Health check before operations (`pane-health.sh -S socket -t target`)
 7. Clean up when done (`kill-session`, `kill-server`)
 
 ### Socket Isolation Pattern
@@ -62,6 +69,60 @@ tmux -S "$SOCKET" kill-server
 - Full: `claude-python:0.0` (session, window, pane)
 - Short: `claude-python` (defaults to :0.0)
 - Named window: `claude-python:shell.0`
+
+### Session Registry
+
+**Purpose**: Automatic session tracking that eliminates ~80% of boilerplate by storing socket/target mappings in a central registry.
+
+**Registry file location:** `${CLAUDE_TMUX_SOCKET_DIR}/.sessions.json` (defaults to `${TMPDIR:-/tmp}/claude-tmux-sockets/.sessions.json`)
+
+**Registry format (JSON):**
+```json
+{
+  "sessions": {
+    "claude-python": {
+      "name": "claude-python",
+      "socket": "/tmp/claude-tmux-sockets/claude-python.sock",
+      "target": "claude-python:0.0",
+      "type": "python",
+      "created_at": "2025-11-23T10:30:00Z",
+      "last_active": "2025-11-23T10:35:00Z",
+      "pid": 12345,
+      "window_name": "python"
+    }
+  }
+}
+```
+
+**Session resolution (3-tier priority):**
+1. **Explicit flags** (`-S socket -t target`) - Highest priority, bypasses registry
+2. **Session name** (`-s name`) - Looks up socket/target in registry
+3. **Auto-detect** - If only one session exists, use it automatically
+
+**Benefits:**
+- No need to track socket paths and target formats manually
+- Single source of truth for all session metadata
+- Automatic session discovery and health tracking
+- Activity tracking for cleanup decisions
+- Enables auto-detection for single-session workflows
+
+**Registry operations** (via `tools/lib/registry.sh`):
+- Add session: Atomic write with JSON validation and file locking
+- Get session: Look up by name, returns full metadata
+- List sessions: Enumerate all registered sessions
+- Remove session: Delete by name with automatic cleanup
+- Session exists: Quick check if session is registered
+
+**Portable locking:**
+- Uses `flock` when available (Linux)
+- Falls back to `mkdir`-based locking on macOS
+- Prevents concurrent modification corruption
+- Timeout protection against deadlocks
+
+**Registry management tools:**
+- `create-session.sh`: Create and register new sessions
+- `list-sessions.sh`: View all sessions with health status
+- `cleanup-sessions.sh`: Remove dead/stale sessions automatically
 
 ### Input Handling
 
@@ -162,7 +223,7 @@ tmux -S "$SOCKET" send-keys -t session:0.0 -l -- 'print("hello")'
 
 ## Helper Tools
 
-The tmux skill includes four battle-tested helper scripts:
+The tmux skill includes seven helper scripts that simplify common operations:
 
 ### 1. wait-for-text.sh
 
@@ -171,19 +232,27 @@ The tmux skill includes four battle-tested helper scripts:
 **Key features:**
 - Regex or fixed-string matching
 - Configurable timeout and poll interval
+- Supports session registry via `-s` (session name lookup)
 - Supports custom sockets via `-S`
+- Auto-detects single session when no flags provided
 - Returns last captured text on timeout (debugging aid)
 
 **Common usage:**
 ```bash
-# Wait for Python prompt
+# Wait for Python prompt (session registry)
+./tools/wait-for-text.sh -s claude-python -p '^>>>' -T 15
+
+# Wait for prompt (auto-detect single session)
+./tools/wait-for-text.sh -p '>>>' -T 15
+
+# Wait for Python prompt (manual socket)
 ./tools/wait-for-text.sh -S "$SOCKET" -t session:0.0 -p '^>>>' -T 15
 
 # Wait for fixed string
-./tools/wait-for-text.sh -t session:0.0 -p 'Ready' -F -T 30
+./tools/wait-for-text.sh -s session-name -p 'Ready' -F -T 30
 
 # Custom poll interval for fast responses
-./tools/wait-for-text.sh -t session:0.0 -p '(gdb)' -i 0.2 -T 10
+./tools/wait-for-text.sh -s session-name -p '(gdb)' -i 0.2 -T 10
 ```
 
 **Implementation notes:**
@@ -231,21 +300,30 @@ Sessions on socket path '/tmp/claude-tmux-sockets/claude.sock':
 **Key features:**
 - Comprehensive state checking (server, session, pane, process)
 - JSON and text output formats
+- Supports session registry via `-s` (session name lookup)
+- Supports custom sockets via `-S`
+- Auto-detects single session when no flags provided
 - Granular exit codes for different failure modes
 - Validates PID via `ps` command
 
 **Common usage:**
 ```bash
-# Check health (JSON format)
+# Check health (session registry)
+./tools/pane-health.sh -s claude-python
+
+# Check health (auto-detect single session)
+./tools/pane-health.sh --format text
+
+# Check health (manual socket)
 ./tools/pane-health.sh -S "$SOCKET" -t session:0.0
 
 # Check health (text format)
-./tools/pane-health.sh -t session:0.0 --format text
+./tools/pane-health.sh -s session-name --format text
 
 # Use in conditional logic
-if ./tools/pane-health.sh -t session:0.0 --format text; then
+if ./tools/pane-health.sh -s claude-python --format text; then
   # Pane is healthy, safe to send commands
-  tmux -S "$SOCKET" send-keys -t session:0.0 "command" Enter
+  ./tools/safe-send.sh -s claude-python -c "command"
 else
   echo "Pane not healthy (exit code: $?)"
 fi
@@ -274,20 +352,28 @@ fi
 - Automatic retry with exponential backoff (0.5s → 1s → 2s)
 - Pre-flight health check using pane-health.sh
 - Optional prompt waiting using wait-for-text.sh
+- Supports session registry via `-s` (session name lookup)
+- Supports custom sockets via `-S` or socket names via `-L`
+- Auto-detects single session when no flags provided
 - Normal mode (execute) and literal mode (type text)
-- Supports both -S (socket path) and -L (socket name)
 - Configurable timeout, retries, and retry interval
 
 **Common usage:**
 ```bash
-# Send Python command and wait for prompt
+# Send Python command and wait for prompt (session registry)
+./tools/safe-send.sh -s claude-python -c "print('hello')" -w ">>>" -T 10
+
+# Send command (auto-detect single session)
+./tools/safe-send.sh -c "print(2+2)" -w ">>>"
+
+# Send Python command and wait for prompt (manual socket)
 ./tools/safe-send.sh -S "$SOCKET" -t session:0.0 -c "print('hello')" -w ">>>" -T 10
 
 # Send text in literal mode (no Enter)
-./tools/safe-send.sh -S "$SOCKET" -t session:0.0 -c "some text" -l
+./tools/safe-send.sh -s session-name -c "some text" -l
 
 # Send with custom retry settings
-./tools/safe-send.sh -t session:0.0 -c "ls" -r 5 -i 1.0
+./tools/safe-send.sh -s session-name -c "ls" -r 5 -i 1.0
 ```
 
 **Implementation notes:**
@@ -301,27 +387,168 @@ fi
 
 **Testing**: Comprehensive test suite with 21/21 tests passing (100% success rate). Tests cover error handling, pane readiness, normal/literal modes, prompt waiting, retry logic, named sockets, verbose mode, and control sequences.
 
+### 5. create-session.sh
+
+**Purpose**: Create and automatically register tmux sessions with common presets (Python REPL, gdb, shell).
+
+**Key features:**
+- Automatic registration in session registry
+- Presets for Python (`--python`), gdb (`--gdb`), and shell (`--shell`)
+- Custom socket paths and window names
+- JSON output with session metadata
+- Optional `--no-register` to skip registry (manual mode)
+- Isolated sockets per session by default
+
+**Common usage:**
+```bash
+# Create Python REPL session
+./tools/create-session.sh -n claude-python --python
+
+# Create gdb session with custom binary
+./tools/create-session.sh -n debug-session --gdb ./myprogram
+
+# Create shell session
+./tools/create-session.sh -n claude-shell --shell
+
+# Create session without registering (manual mode)
+./tools/create-session.sh -n manual-session --shell --no-register
+```
+
+**Output format (JSON):**
+```json
+{
+  "name": "claude-python",
+  "socket": "/tmp/claude-tmux-sockets/claude-python.sock",
+  "target": "claude-python:0.0",
+  "type": "python",
+  "pid": 12345,
+  "window_name": "python",
+  "created_at": "2025-11-23T10:30:00Z"
+}
+```
+
+**Testing**: 20/20 tests passing covering shell/Python/gdb creation, registration, custom paths, error handling, and metadata validation.
+
+### 6. list-sessions.sh
+
+**Purpose**: List all registered sessions with health status and statistics.
+
+**Key features:**
+- Table and JSON output formats
+- Health status integration (alive, dead, missing, zombie)
+- Session statistics (total, alive, dead)
+- Shows last activity timestamp
+- Integrates with pane-health.sh for status
+
+**Common usage:**
+```bash
+# List sessions (table format)
+./tools/list-sessions.sh
+
+# List sessions (JSON format)
+./tools/list-sessions.sh --json
+```
+
+**Table output example:**
+```
+NAME            SOCKET                                    TARGET              TYPE     STATUS  LAST ACTIVE
+claude-python   /tmp/claude-tmux-sockets/claude.sock     claude-python:0.0   python   alive   2025-11-23 10:35:00
+claude-gdb      /tmp/claude-tmux-sockets/debug.sock      claude-gdb:0.0      gdb      dead    2025-11-23 10:20:00
+
+Sessions: 2 total, 1 alive, 1 dead
+```
+
+**JSON output example:**
+```json
+{
+  "sessions": [
+    {
+      "name": "claude-python",
+      "socket": "/tmp/claude-tmux-sockets/claude.sock",
+      "target": "claude-python:0.0",
+      "type": "python",
+      "status": "alive",
+      "pid": 12345,
+      "created_at": "2025-11-23T10:30:00Z",
+      "last_active": "2025-11-23T10:35:00Z"
+    }
+  ],
+  "total": 1,
+  "alive": 1,
+  "dead": 0
+}
+```
+
+**Testing**: 20/20 tests passing covering empty registry, health detection, output formats, and statistics.
+
+### 7. cleanup-sessions.sh
+
+**Purpose**: Remove dead, missing, or stale sessions from the registry.
+
+**Key features:**
+- Dry-run mode for preview (`--dry-run`)
+- Remove all sessions (`--all`)
+- Age-based filtering (`--older-than`)
+- Duration parsing (30s, 5m, 1h, 2d)
+- Selective cleanup (preserves alive sessions by default)
+- Shows cleanup reason (dead, missing, zombie, age)
+
+**Common usage:**
+```bash
+# Clean up dead sessions (dry-run)
+./tools/cleanup-sessions.sh --dry-run
+
+# Clean up dead sessions (execute)
+./tools/cleanup-sessions.sh
+
+# Clean up all sessions
+./tools/cleanup-sessions.sh --all
+
+# Clean up sessions older than 1 hour
+./tools/cleanup-sessions.sh --older-than 1h
+
+# Clean up sessions older than 2 days
+./tools/cleanup-sessions.sh --older-than 2d
+```
+
+**Output example:**
+```
+Removing 2 session(s) from registry...
+  - claude-old (reason: dead)
+  - claude-stale (reason: older than 1h)
+Cleanup complete: 2 session(s) removed
+```
+
+**Testing**: 15/15 tests passing covering dry-run mode, selective cleanup, age filtering, and duration parsing.
+
 ## Key Insights
 
 ### Critical Requirements
 
-1. **PYTHON_BASIC_REPL=1 for Python** (CRITICAL)
+1. **Use session registry for simplified workflows** (RECOMMENDED)
+   - Eliminates ~80% of boilerplate through automatic session tracking
+   - Use `create-session.sh` to create and register sessions
+   - Use `-s session-name` flag instead of `-S socket -t target`
+   - Auto-detection works when only one session exists
+   - See [Session Registry Reference](../../plugins/tmux/references/session-registry.md) for details
+
+2. **PYTHON_BASIC_REPL=1 for Python** (CRITICAL)
    - The fancy REPL with syntax highlighting interferes with send-keys
    - Commands will fail silently without this environment variable
    - **ALWAYS** set before starting Python: `PYTHON_BASIC_REPL=1 python3 -q`
    - Failure mode: keystrokes dropped, commands not executed
 
-2. **Socket isolation via -S flag**
+3. **Socket isolation via -S flag**
    - Convention: `${TMPDIR:-/tmp}/claude-tmux-sockets/`
    - Enables multiple agent sessions without conflicts
    - Prevents interference with user's personal tmux
 
-3. **Synchronization is mandatory**
+4. **Synchronization is mandatory**
    - Never send commands without waiting for readiness
    - Use `wait-for-text.sh` to poll for prompts
    - Race conditions will cause dropped keystrokes
 
-4. **Health checking before operations**
+5. **Health checking before operations**
    - Use `pane-health.sh` to verify pane state
    - Prevents "pane not found" errors
    - Detects crashes early
@@ -616,30 +843,38 @@ Comprehensive test suite validates all failure modes:
 - [Plugin Source](../../plugins/tmux/)
 - [Changelog](../../changelogs/tmux.md)
 - [SKILL.md](../../plugins/tmux/SKILL.md)
+- [Session Registry Reference](../../plugins/tmux/references/session-registry.md)
+
+**Helper Tools:**
 - [wait-for-text.sh](../../plugins/tmux/tools/wait-for-text.sh)
 - [find-sessions.sh](../../plugins/tmux/tools/find-sessions.sh)
 - [pane-health.sh](../../plugins/tmux/tools/pane-health.sh)
 - [safe-send.sh](../../plugins/tmux/tools/safe-send.sh)
+- [create-session.sh](../../plugins/tmux/tools/create-session.sh)
+- [list-sessions.sh](../../plugins/tmux/tools/list-sessions.sh)
+- [cleanup-sessions.sh](../../plugins/tmux/tools/cleanup-sessions.sh)
+
+**Library:**
+- [registry.sh](../../plugins/tmux/tools/lib/registry.sh)
 
 ## Version
 
-Documented for tmux skill v1.1.0+ (includes safe-send.sh)
+Documented for tmux skill v1.2.0+ (includes session registry)
 
 **Recent additions:**
 - v1.0.1: Added socket support to wait-for-text.sh and pane-health.sh
 - v1.1.0: Added safe-send.sh for reliable command sending with retries
+- v1.2.0: Added session registry system with create/list/cleanup tools and -s flag support
 
 ## Future Enhancements
 
 Potential helper tools to improve reliability and usability:
 
-**Critical priority:**
-- `cleanup-sessions.sh` - Automated session cleanup by age/idle time/pattern
-
 **High priority:**
 - `capture-clean.sh` - Clean output capture with ANSI stripping and formatting
-- `create-session.sh` - One-stop session creation with presets (Python, gdb, etc.)
 
 **Medium priority:**
-- `send-and-wait.sh` - Combined send + wait operation (convenience wrapper)
 - `monitor-pane.sh` - Continuous output streaming for debugging
+- Session templates for common configurations
+- Shell completion for session names
+- MCP resource integration (`tmux_sessions` resource)

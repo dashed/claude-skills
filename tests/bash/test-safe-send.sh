@@ -5,6 +5,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TOOL_PATH="$REPO_ROOT/plugins/tmux/tools/safe-send.sh"
+CREATE_SESSION="$REPO_ROOT/plugins/tmux/tools/create-session.sh"
+REGISTRY_LIB="$REPO_ROOT/plugins/tmux/tools/lib/registry.sh"
 
 # Colors for output
 RED='\033[0;31m'
@@ -17,6 +19,13 @@ NC='\033[0m' # No Color
 SOCKET_DIR="${TMPDIR:-/tmp}/tmux-test-$$"
 SOCKET="$SOCKET_DIR/test-safe-send.sock"
 SOCKET_NAME="test-safe-send-$$"
+
+# Registry configuration (for session registry tests)
+export CLAUDE_TMUX_SOCKET_DIR="$SOCKET_DIR"
+
+# Source registry library
+# shellcheck source=../../plugins/tmux/tools/lib/registry.sh
+source "$REGISTRY_LIB"
 
 # Test counters
 TESTS_PASSED=0
@@ -367,6 +376,146 @@ echo "Pane output after C-c:"
 echo "$ctrl_output"
 
 tmux -S "$SOCKET" kill-session -t ctrl-test 2>/dev/null || true
+
+# ============================================================================
+# TEST 10: Session Registry Features
+# ============================================================================
+
+echo -e "\n${BLUE}═══════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}TEST SECTION 10: Session Registry Features${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+
+# Helper to clean registry between tests
+clean_registry() {
+    shopt -s nullglob
+    for socket in "$CLAUDE_TMUX_SOCKET_DIR"/*.sock; do
+        tmux -S "$socket" kill-server 2>/dev/null || true
+    done
+    shopt -u nullglob
+    rm -rf "$CLAUDE_TMUX_SOCKET_DIR"
+    mkdir -p "$CLAUDE_TMUX_SOCKET_DIR"
+}
+
+# Test 22: -s flag with valid session name
+clean_registry
+"$CREATE_SESSION" -n "registry-test" --shell >/dev/null 2>&1
+sleep 0.3
+
+run_test "-s flag with valid session name" 0 \
+    "$TOOL_PATH" -s "registry-test" -c "echo 'registry test'"
+
+registry_session=$(registry_get_session "registry-test" 2>/dev/null || echo "")
+if [[ -n "$registry_session" ]]; then
+    socket_path=$(echo "$registry_session" | jq -r '.socket')
+    tmux -S "$socket_path" kill-server 2>/dev/null || true
+fi
+
+# Test 23: -s flag with invalid session name
+clean_registry
+
+run_test "-s flag with invalid/non-existent session" 4 \
+    "$TOOL_PATH" -s "nonexistent-session" -c "echo 'test'"
+
+# Test 24: Auto-detect with single session
+clean_registry
+"$CREATE_SESSION" -n "auto-single" --shell >/dev/null 2>&1
+sleep 0.3
+
+run_test "Auto-detect with single session" 0 \
+    "$TOOL_PATH" -c "echo 'auto-detect test'"
+
+registry_session=$(registry_get_session "auto-single" 2>/dev/null || echo "")
+if [[ -n "$registry_session" ]]; then
+    socket_path=$(echo "$registry_session" | jq -r '.socket')
+    tmux -S "$socket_path" kill-server 2>/dev/null || true
+fi
+
+# Test 25: Auto-detect with multiple sessions (should fail)
+clean_registry
+"$CREATE_SESSION" -n "auto-multi-1" --shell >/dev/null 2>&1
+"$CREATE_SESSION" -n "auto-multi-2" --shell >/dev/null 2>&1
+sleep 0.3
+
+run_test "Auto-detect with multiple sessions (should fail)" 4 \
+    "$TOOL_PATH" -c "echo 'test'"
+
+shopt -s nullglob
+for socket in "$CLAUDE_TMUX_SOCKET_DIR"/*.sock; do
+    tmux -S "$socket" kill-server 2>/dev/null || true
+done
+shopt -u nullglob
+
+# Test 26: Priority - explicit -S/-t override -s
+clean_registry
+"$CREATE_SESSION" -n "priority-test-1" --shell >/dev/null 2>&1
+"$CREATE_SESSION" -n "priority-test-2" --shell >/dev/null 2>&1
+sleep 0.3
+
+# Get socket for priority-test-2
+registry_session=$(registry_get_session "priority-test-2" 2>/dev/null)
+socket2=$(echo "$registry_session" | jq -r '.socket')
+
+# Use -s for priority-test-1 but -S for priority-test-2 (explicit should win)
+run_test "Priority: explicit -S/-t override -s" 0 \
+    "$TOOL_PATH" -S "$socket2" -t "priority-test-2:0.0" -s "priority-test-1" -c "echo 'explicit wins'"
+
+# Verify it went to priority-test-2 (explicit) not priority-test-1 (-s)
+sleep 0.3
+pane2_output=$(tmux -S "$socket2" capture-pane -p -t "priority-test-2:0.0" 2>/dev/null || echo "")
+if echo "$pane2_output" | grep -q "explicit wins"; then
+    echo -e "${GREEN}✓ Verified: command sent to explicit socket (priority-test-2)${NC}"
+else
+    echo -e "${YELLOW}⚠ Could not verify command destination${NC}"
+fi
+
+shopt -s nullglob
+for socket in "$CLAUDE_TMUX_SOCKET_DIR"/*.sock; do
+    tmux -S "$socket" kill-server 2>/dev/null || true
+done
+shopt -u nullglob
+
+# Test 27: Priority - -s overrides auto-detect
+clean_registry
+"$CREATE_SESSION" -n "priority-s-1" --shell >/dev/null 2>&1
+"$CREATE_SESSION" -n "priority-s-2" --shell >/dev/null 2>&1
+sleep 0.3
+
+# With multiple sessions, -s should work even though auto-detect would fail
+run_test "Priority: -s overrides auto-detect" 0 \
+    "$TOOL_PATH" -s "priority-s-1" -c "echo 's flag wins'"
+
+shopt -s nullglob
+for socket in "$CLAUDE_TMUX_SOCKET_DIR"/*.sock; do
+    tmux -S "$socket" kill-server 2>/dev/null || true
+done
+shopt -u nullglob
+
+# Test 28: Registry not initialized
+clean_registry
+rm -f "$CLAUDE_TMUX_SOCKET_DIR/.sessions.json" 2>/dev/null || true
+
+run_test "Registry not initialized (should fail gracefully)" 4 \
+    "$TOOL_PATH" -s "test-session" -c "echo 'test'"
+
+# Test 29: -s flag with Python session
+clean_registry
+"$CREATE_SESSION" -n "registry-python" --python >/dev/null 2>&1
+
+# Wait for Python prompt
+sleep 2
+registry_session=$(registry_get_session "registry-python" 2>/dev/null)
+socket_py=$(echo "$registry_session" | jq -r '.socket')
+tmux -S "$socket_py" capture-pane -p -t "registry-python:0.0" >/dev/null 2>&1 || true
+
+run_test "-s flag with Python session" 0 \
+    "$TOOL_PATH" -s "registry-python" -c "print('registry python test')" -w ">>>" -T 10
+
+# Cleanup
+if [[ -n "$socket_py" ]]; then
+    tmux -S "$socket_py" kill-server 2>/dev/null || true
+fi
+
+clean_registry
 
 # ============================================================================
 # Summary

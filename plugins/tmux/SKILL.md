@@ -8,71 +8,92 @@ license: Vibecoded
 
 Use tmux as a programmable terminal multiplexer for interactive work. Works on Linux and macOS with stock tmux; avoid custom config by using a private socket.
 
-## Quickstart (isolated socket)
+## Quickstart
+
+The session registry eliminates repetitive socket/target specification through automatic session tracking (~80% reduction in boilerplate):
 
 ```bash
-SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets  # well-known dir for all agent sockets
-mkdir -p "$SOCKET_DIR"
-SOCKET="$SOCKET_DIR/claude.sock"                # keep agent sessions separate from your personal tmux
-SESSION=claude-python                           # slug-like names; avoid spaces
-tmux -S "$SOCKET" new -d -s "$SESSION" -n shell
-tmux -S "$SOCKET" send-keys -t "$SESSION":0.0 -- 'PYTHON_BASIC_REPL=1 python3 -q' Enter
-tmux -S "$SOCKET" capture-pane -p -J -t "$SESSION":0.0 -S -200  # watch output
-tmux -S "$SOCKET" kill-session -t "$SESSION"                   # clean up
+# Create and register a Python REPL session
+./tools/create-session.sh -n claude-python --python
+
+# Send commands using session name (auto-lookup socket/target)
+./tools/safe-send.sh -s claude-python -c "print(2+2)" -w ">>>"
+
+# Or with a single session, omit -s entirely (auto-detect)
+./tools/safe-send.sh -c "print('hello world')" -w ">>>"
+
+# List all registered sessions with health status
+./tools/list-sessions.sh
+
+# Clean up dead sessions
+./tools/cleanup-sessions.sh
 ```
 
-After starting a session ALWAYS tell the user how to monitor the session by giving them a command to copy paste:
+After starting a session, ALWAYS tell the user how to monitor it by giving them a command to copy/paste:
 
 ```
 To monitor this session yourself:
-  tmux -S "$SOCKET" attach -t claude-lldb
+  ./tools/list-sessions.sh
 
-Or to capture the output once:
-  tmux -S "$SOCKET" capture-pane -p -J -t claude-lldb:0.0 -S -200
+Or attach directly:
+  tmux -S /tmp/claude-tmux-sockets/claude.sock attach -t claude-python
 ```
 
-This must ALWAYS be printed right after a session was started and once again at the end of the tool loop.  But the earlier you send it, the happier the user will be.
+This must ALWAYS be printed right after a session was started and once again at the end of the tool loop. But the earlier you send it, the happier the user will be.
 
-## Socket convention
+## How It Works
 
-- Agents MUST place tmux sockets under `CLAUDE_TMUX_SOCKET_DIR` (defaults to `${TMPDIR:-/tmp}/claude-tmux-sockets`) and use `tmux -S "$SOCKET"` so we can enumerate/clean them. Create the dir first: `mkdir -p "$CLAUDE_TMUX_SOCKET_DIR"`.
-- Default socket path to use unless you must isolate further: `SOCKET="$CLAUDE_TMUX_SOCKET_DIR/claude.sock"`.
+The session registry provides three ways to reference sessions:
 
-## Targeting panes and naming
+1. **By name** using `-s session-name` (looks up socket/target in registry)
+2. **Auto-detect** when only one session exists (omit `-s`)
+3. **Explicit** using `-S socket -t target` (backward compatible)
 
-- Target format: `{session}:{window}.{pane}`, defaults to `:0.0` if omitted. Keep names short (e.g., `claude-py`, `claude-gdb`).
-- Use `-S "$SOCKET"` consistently to stay on the private socket path. If you need user config, drop `-f /dev/null`; otherwise `-f /dev/null` gives a clean config.
-- Inspect: `tmux -S "$SOCKET" list-sessions`, `tmux -S "$SOCKET" list-panes -a`.
+Tools automatically choose the right session using this priority order:
+1. Explicit `-S` and `-t` flags (highest priority)
+2. Session name `-s` flag (registry lookup)
+3. Auto-detect single session (if only one exists)
+
+**Benefits:**
+- No more repeating `-S socket -t target` on every command
+- Automatic session discovery
+- Built-in health tracking
+- Activity timestamps for cleanup decisions
+- Fully backward compatible
 
 ## Finding sessions
 
-- List sessions on your active socket with metadata: `./tools/find-sessions.sh -S "$SOCKET"`; add `-q partial-name` to filter.
-- Scan all sockets under the shared directory: `./tools/find-sessions.sh --all` (uses `CLAUDE_TMUX_SOCKET_DIR` or `${TMPDIR:-/tmp}/claude-tmux-sockets`).
+List all registered sessions with health status:
+```bash
+./tools/list-sessions.sh           # Table format
+./tools/list-sessions.sh --json    # JSON format
+```
+
+Output shows session name, socket, target, health status, PID, and creation time.
 
 ## Sending input safely
-
-**Recommended: Use safe-send.sh for reliable command sending**
 
 The `./tools/safe-send.sh` helper provides automatic retries, readiness checks, and optional prompt waiting:
 
 ```bash
+# Using session name (looks up socket/target from registry)
+./tools/safe-send.sh -s claude-python -c "print('hello')" -w ">>>"
+
+# Auto-detect single session (omit -s)
+./tools/safe-send.sh -c "print('world')" -w ">>>"
+
+# Explicit socket/target (backward compatible)
 ./tools/safe-send.sh -S "$SOCKET" -t "$SESSION":0.0 -c "print('hello')" -w ">>>"
 ```
 
 See the [Helper: safe-send.sh](#helper-safe-sendsh) section below for full documentation.
 
-**Direct tmux send-keys (manual approach):**
-
-- Prefer literal sends to avoid shell splitting: `tmux -S "$SOCKET" send-keys -t target -l -- "$cmd"`
-- When composing inline commands, use single quotes or ANSI C quoting to avoid expansion: `tmux ... send-keys -t target -- $'python3 -m http.server 8000'`.
-- To send control keys: `tmux ... send-keys -t target C-c`, `C-d`, `C-z`, `Escape`, etc.
-
 ## Watching output
 
-- Capture recent history (joined lines to avoid wrapping artifacts): `tmux -L "$SOCKET" capture-pane -p -J -t target -S -200`.
+- Capture recent history (joined lines to avoid wrapping artifacts): `tmux -S "$SOCKET" capture-pane -p -J -t target -S -200`.
 - For continuous monitoring, poll with the helper script (below) instead of `tmux wait-for` (which does not watch pane output).
-- You can also temporarily attach to observe: `tmux -L "$SOCKET" attach -t "$SESSION"`; detach with `Ctrl+b d`.
-- When giving instructions to a user, **explicitly print a copy/paste monitor command** alongside the action don't assume they remembered the command.
+- You can also temporarily attach to observe: `tmux -S "$SOCKET" attach -t "$SESSION"`; detach with `Ctrl+b d`.
+- When giving instructions to a user, **explicitly print a copy/paste monitor command** alongside the action—don't assume they remembered the command.
 
 ## Spawning Processes
 
@@ -81,115 +102,191 @@ Some special rules for processes:
 - when asked to debug, use lldb by default
 - **CRITICAL**: When starting a Python interactive shell, **always** set the `PYTHON_BASIC_REPL=1` environment variable before launching Python. This is **essential** - the non-basic console (fancy REPL with syntax highlighting) interferes with send-keys and will cause commands to fail silently.
   ```bash
+  # When using create-session.sh, this is automatic with --python flag
+  ./tools/create-session.sh -n my-python --python
+
+  # When creating manually:
   tmux -S "$SOCKET" send-keys -t "$SESSION":0.0 -- 'PYTHON_BASIC_REPL=1 python3 -q' Enter
   ```
 
 ## Synchronizing / waiting for prompts
 
-- Use timed polling to avoid races with interactive tools. Example: wait for a Python prompt before sending code:
-  ```bash
-  ./tools/wait-for-text.sh -S "$SOCKET" -t "$SESSION":0.0 -p '^>>>' -T 15 -l 4000
-  ```
-- For long-running commands, poll for completion text (`"Type quit to exit"`, `"Program exited"`, etc.) before proceeding.
+Use timed polling to avoid races with interactive tools:
+
+```bash
+# Wait for Python prompt
+./tools/wait-for-text.sh -s claude-python -p '^>>>' -T 15 -l 4000
+
+# Auto-detect single session
+./tools/wait-for-text.sh -p '^>>>' -T 15
+
+# Explicit socket/target
+./tools/wait-for-text.sh -S "$SOCKET" -t "$SESSION":0.0 -p '^>>>' -T 15 -l 4000
+```
+
+For long-running commands, poll for completion text (`"Type quit to exit"`, `"Program exited"`, etc.) before proceeding.
 
 ## Interactive tool recipes
 
-- **Python REPL**: `tmux ... send-keys -- 'PYTHON_BASIC_REPL=1 python3 -q' Enter`; wait for `^>>>`; send code with `-l`; interrupt with `C-c`. **Always** with `PYTHON_BASIC_REPL=1`.
-- **gdb**: `tmux ... send-keys -- 'gdb --quiet ./a.out' Enter`; disable paging `tmux ... send-keys -- 'set pagination off' Enter`; break with `C-c`; issue `bt`, `info locals`, etc.; exit via `quit` then confirm `y`.
-- **Other TTY apps** (ipdb, psql, mysql, node, bash): same pattern—start the program, poll for its prompt, then send literal text and Enter.
+- **Python REPL**: Use `./tools/create-session.sh -n my-python --python`; wait for `^>>>`; send code; interrupt with `C-c`. The `--python` flag automatically sets `PYTHON_BASIC_REPL=1`.
+- **gdb**: Use `./tools/create-session.sh -n my-gdb --gdb`; disable paging with safe-send; break with `C-c`; issue `bt`, `info locals`, etc.; exit via `quit` then confirm `y`.
+- **Other TTY apps** (ipdb, psql, mysql, node, bash): Use `./tools/create-session.sh -n my-session --shell`; poll for prompt; send literal text and Enter.
 
 ## Cleanup
 
+Using the session registry:
+```bash
+# Remove dead sessions
+./tools/cleanup-sessions.sh
+
+# Remove sessions older than 1 hour
+./tools/cleanup-sessions.sh --older-than 1h
+
+# See what would be removed (dry-run)
+./tools/cleanup-sessions.sh --dry-run
+```
+
+Manual cleanup (when not using registry):
 - Kill a session when done: `tmux -S "$SOCKET" kill-session -t "$SESSION"`.
 - Kill all sessions on a socket: `tmux -S "$SOCKET" list-sessions -F '#{session_name}' | xargs -r -n1 tmux -S "$SOCKET" kill-session -t`.
 - Remove everything on the private socket: `tmux -S "$SOCKET" kill-server`.
 
-## Helper: wait-for-text.sh
+## Helper: create-session.sh
 
-`./tools/wait-for-text.sh` polls a pane for a regex (or fixed string) with a timeout. Works on Linux/macOS with bash + tmux + grep.
-
-```bash
-./tools/wait-for-text.sh -t session:0.0 -p 'pattern' [-S socket] [-F] [-T 20] [-i 0.5] [-l 2000]
-```
-
-- `-t`/`--target` pane target (required)
-- `-p`/`--pattern` regex to match (required); add `-F` for fixed string
-- `-S`/`--socket` tmux socket path (for custom sockets via -S)
-- `-T` timeout seconds (integer, default 15)
-- `-i` poll interval seconds (default 0.5)
-- `-l` history lines to search from the pane (integer, default 1000)
-- Exits 0 on first match, 1 on timeout. On failure prints the last captured text to stderr to aid debugging.
-
-**Example with custom socket:**
-```bash
-SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets
-SOCKET="$SOCKET_DIR/claude.sock"
-./tools/wait-for-text.sh -S "$SOCKET" -t "$SESSION":0.0 -p '^>>>' -T 15
-```
-
-## Helper: pane-health.sh
-
-`./tools/pane-health.sh` checks the health status of a tmux pane before operations to prevent "pane not found" errors and detect failures early. Essential for reliable automation.
+`./tools/create-session.sh` creates and registers new tmux sessions with automatic registry integration.
 
 ```bash
-./tools/pane-health.sh -t session:0.0 [-S socket] [--format json|text]
+./tools/create-session.sh -n <name> [--python|--gdb|--shell] [options]
 ```
 
-- `-t`/`--target` pane target (required)
-- `-S`/`--socket` tmux socket path (for custom sockets via -S)
-- `--format` output format: `json` (default) or `text`
-- Exits with status codes indicating health state
+**Key options:**
+- `-n`/`--name` session name (required)
+- `--python` launch Python REPL with PYTHON_BASIC_REPL=1
+- `--gdb` launch gdb debugger
+- `--shell` launch bash shell (default)
+- `-S`/`--socket` custom socket path (optional, uses default)
+- `-w`/`--window` window name (default: "shell")
+- `--no-register` don't add to registry
 
-**Exit codes:**
-- `0` - Healthy (pane alive, process running)
-- `1` - Dead (pane marked as dead)
-- `2` - Missing (pane/session doesn't exist)
-- `3` - Zombie (process exited but pane still exists)
-- `4` - Server not running
+**Examples:**
 
-**JSON output includes:**
-- `status`: overall health (`healthy`, `dead`, `missing`, `zombie`, `server_not_running`)
-- `server_running`: boolean
-- `session_exists`: boolean
-- `pane_exists`: boolean
-- `pane_dead`: boolean
-- `pid`: process ID (or null)
-- `process_running`: boolean
-
-**Use cases:**
-- Before sending commands: verify pane is ready
-- After errors: determine if pane crashed
-- Periodic health checks during long operations
-- Cleanup decision: which panes to kill vs keep
-
-**Example with custom socket (JSON):**
 ```bash
-SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets
-SOCKET="$SOCKET_DIR/claude.sock"
-./tools/pane-health.sh -S "$SOCKET" -t "$SESSION":0.0
-# Output: {"status": "healthy", "server_running": true, ...}
+# Create Python REPL session
+./tools/create-session.sh -n claude-python --python
+
+# Create gdb session
+./tools/create-session.sh -n claude-gdb --gdb
+
+# Create session without registering
+./tools/create-session.sh -n temp-session --shell --no-register
+
+# Create session with custom socket
+./tools/create-session.sh -n my-session -S /tmp/custom.sock --python
 ```
 
-**Example in conditional logic:**
-```bash
-if ./tools/pane-health.sh -t "$SESSION":0.0 --format text; then
-  echo "Pane is ready for commands"
-  tmux -S "$SOCKET" send-keys -t "$SESSION":0.0 "print('hello')" Enter
-else
-  echo "Pane is not healthy (exit code: $?)"
-fi
+**Returns JSON with session info:**
+```json
+{
+  "name": "claude-python",
+  "socket": "/tmp/claude-tmux-sockets/claude.sock",
+  "target": "claude-python:0.0",
+  "type": "python-repl",
+  "pid": 12345,
+  "registered": true
+}
 ```
+
+## Helper: list-sessions.sh
+
+`./tools/list-sessions.sh` lists all registered sessions with health status.
+
+```bash
+./tools/list-sessions.sh [--json]
+```
+
+**Options:**
+- `--json` output as JSON instead of table format
+
+**Table output (default):**
+```
+NAME            SOCKET          TARGET          STATUS    PID    CREATED
+claude-python   claude.sock     :0.0            alive     1234   2h ago
+claude-gdb      claude.sock     :0.0            dead      -      1h ago
+
+Total: 2 | Alive: 1 | Dead: 1
+```
+
+**JSON output:**
+```json
+{
+  "sessions": [
+    {"name": "claude-python", "status": "alive", ...}
+  ],
+  "total": 2,
+  "alive": 1,
+  "dead": 1
+}
+```
+
+**Health statuses:**
+- `alive` - Session running and healthy
+- `dead` - Pane marked as dead
+- `missing` - Session/pane not found
+- `zombie` - Process exited but pane exists
+- `server` - Tmux server not running
+
+## Helper: cleanup-sessions.sh
+
+`./tools/cleanup-sessions.sh` removes dead or old sessions from the registry.
+
+```bash
+./tools/cleanup-sessions.sh [--dry-run] [--all] [--older-than <duration>]
+```
+
+**Options:**
+- `--dry-run` show what would be cleaned without removing
+- `--all` remove all sessions (even alive ones)
+- `--older-than <duration>` remove sessions older than threshold (e.g., "1h", "2d")
+
+**Examples:**
+
+```bash
+# Remove dead sessions
+./tools/cleanup-sessions.sh
+
+# Dry-run to see what would be removed
+./tools/cleanup-sessions.sh --dry-run
+
+# Remove sessions inactive for more than 1 hour
+./tools/cleanup-sessions.sh --older-than 1h
+
+# Remove all sessions
+./tools/cleanup-sessions.sh --all
+```
+
+**Duration format:** `30m`, `2h`, `1d`, `3600s`
 
 ## Helper: safe-send.sh
 
 `./tools/safe-send.sh` sends keystrokes to tmux panes with automatic retries, readiness checks, and optional prompt waiting. Prevents dropped commands that can occur when sending to busy or not-yet-ready panes.
 
 ```bash
-./tools/safe-send.sh -t session:0.0 -c "command" [-S socket] [-l] [-w pattern] [-T timeout] [-r retries]
+# Session registry mode
+./tools/safe-send.sh -s session-name -c "command" [-w pattern]
+
+# Auto-detect mode (single session)
+./tools/safe-send.sh -c "command" [-w pattern]
+
+# Explicit mode (backward compatible)
+./tools/safe-send.sh -t session:0.0 -c "command" [-S socket] [-w pattern]
 ```
 
+**Target selection (priority order):**
+- `-s`/`--session` session name (looks up socket/target in registry)
+- `-t`/`--target` explicit pane target (session:window.pane)
+- (no flags) auto-detect if only one session exists
+
 **Key options:**
-- `-t`/`--target` pane target (required)
 - `-c`/`--command` command to send (required; empty string sends just Enter)
 - `-S`/`--socket` tmux socket path (for custom sockets via -S)
 - `-L`/`--socket-name` tmux socket name (for named sockets via -L)
@@ -221,17 +318,235 @@ fi
 **Examples:**
 
 ```bash
-# Send Python command and wait for prompt
-SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets
-SOCKET="$SOCKET_DIR/claude.sock"
-./tools/safe-send.sh -S "$SOCKET" -t "$SESSION":0.0 -c "print('hello')" -w ">>>" -T 10
+# Send Python command using session registry
+./tools/safe-send.sh -s claude-python -c "print('hello')" -w ">>>" -T 10
+
+# Auto-detect single session
+./tools/safe-send.sh -c "print('world')" -w ">>>"
 
 # Send text in literal mode (no Enter)
-./tools/safe-send.sh -S "$SOCKET" -t "$SESSION":0.0 -c "some text" -l
+./tools/safe-send.sh -s claude-python -c "some text" -l
 
 # Send with custom retry settings
-./tools/safe-send.sh -S "$SOCKET" -t "$SESSION":0.0 -c "ls" -r 5 -i 1.0
+./tools/safe-send.sh -s claude-python -c "ls" -r 5 -i 1.0
 
 # Send control sequence
-./tools/safe-send.sh -S "$SOCKET" -t "$SESSION":0.0 -c "C-c"
+./tools/safe-send.sh -s claude-python -c "C-c"
+
+# Explicit socket/target (backward compatible)
+SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets
+SOCKET="$SOCKET_DIR/claude.sock"
+./tools/safe-send.sh -S "$SOCKET" -t "$SESSION":0.0 -c "print('hello')" -w ">>>"
 ```
+
+## Helper: wait-for-text.sh
+
+`./tools/wait-for-text.sh` polls a pane for a regex (or fixed string) with a timeout. Works on Linux/macOS with bash + tmux + grep.
+
+```bash
+# Using session name (looks up socket/target from registry)
+./tools/wait-for-text.sh -s claude-python -p '^>>>' -T 15
+
+# Auto-detect single session (omit -s)
+./tools/wait-for-text.sh -p '^>>>' -T 15
+
+# Explicit socket/target (backward compatible)
+./tools/wait-for-text.sh -S "$SOCKET" -t "$SESSION":0.0 -p '^>>>' -T 15
+```
+
+**Target selection (priority order):**
+- `-s`/`--session` session name (looks up socket/target in registry)
+- `-t`/`--target` explicit pane target (session:window.pane)
+- (no flags) auto-detect if only one session exists
+
+**Options:**
+- `-p`/`--pattern` regex to match (required); add `-F` for fixed string
+- `-S`/`--socket` tmux socket path (for custom sockets via -S)
+- `-T` timeout seconds (integer, default 15)
+- `-i` poll interval seconds (default 0.5)
+- `-l` history lines to search from the pane (integer, default 1000)
+- Exits 0 on first match, 1 on timeout. On failure prints the last captured text to stderr to aid debugging.
+
+**Examples:**
+
+```bash
+# Wait for Python prompt using session name
+./tools/wait-for-text.sh -s claude-python -p '^>>>' -T 10
+
+# Wait for gdb prompt with auto-detect
+./tools/wait-for-text.sh -p '(gdb)' -T 10
+
+# Explicit socket/target (backward compatible)
+SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets
+SOCKET="$SOCKET_DIR/claude.sock"
+./tools/wait-for-text.sh -S "$SOCKET" -t "$SESSION":0.0 -p '^>>>' -T 15
+```
+
+## Helper: pane-health.sh
+
+`./tools/pane-health.sh` checks the health status of a tmux pane before operations to prevent "pane not found" errors and detect failures early. Essential for reliable automation.
+
+```bash
+# Using session name (looks up socket/target from registry)
+./tools/pane-health.sh -s claude-python [--format json|text]
+
+# Auto-detect single session (omit -s)
+./tools/pane-health.sh --format text
+
+# Explicit socket/target (backward compatible)
+./tools/pane-health.sh -S "$SOCKET" -t "$SESSION":0.0 [--format json|text]
+```
+
+**Target selection (priority order):**
+- `-s`/`--session` session name (looks up socket/target in registry)
+- `-t`/`--target` explicit pane target (session:window.pane)
+- (no flags) auto-detect if only one session exists
+
+**Options:**
+- `-S`/`--socket` tmux socket path (for custom sockets via -S)
+- `--format` output format: `json` (default) or `text`
+- Exits with status codes indicating health state
+
+**Exit codes:**
+- `0` - Healthy (pane alive, process running)
+- `1` - Dead (pane marked as dead)
+- `2` - Missing (pane/session doesn't exist)
+- `3` - Zombie (process exited but pane still exists)
+- `4` - Server not running
+
+**JSON output includes:**
+- `status`: overall health (`healthy`, `dead`, `missing`, `zombie`, `server_not_running`)
+- `server_running`: boolean
+- `session_exists`: boolean
+- `pane_exists`: boolean
+- `pane_dead`: boolean
+- `pid`: process ID (or null)
+- `process_running`: boolean
+
+**Use cases:**
+- Before sending commands: verify pane is ready
+- After errors: determine if pane crashed
+- Periodic health checks during long operations
+- Cleanup decision: which panes to kill vs keep
+
+**Examples:**
+
+```bash
+# Check health using session name (JSON output)
+./tools/pane-health.sh -s claude-python
+# Output: {"status": "healthy", "server_running": true, ...}
+
+# Check health with auto-detect (text output)
+./tools/pane-health.sh --format text
+# Output: Pane claude-python:0.0 is healthy (PID: 12345, process running)
+
+# Conditional logic with session registry
+if ./tools/pane-health.sh -s my-session --format text; then
+  echo "Pane is ready for commands"
+  ./tools/safe-send.sh -s my-session -c "print('hello')"
+else
+  echo "Pane is not healthy (exit code: $?)"
+fi
+
+# Explicit socket/target (backward compatible)
+SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets
+SOCKET="$SOCKET_DIR/claude.sock"
+./tools/pane-health.sh -S "$SOCKET" -t "$SESSION":0.0
+```
+
+## Alternative: Manual Socket Management
+
+For advanced use cases requiring explicit control over socket paths and session management, you can bypass the session registry and manage sessions manually.
+
+**When to use manual socket management:**
+- Custom socket isolation requirements
+- Integration with existing tmux workflows
+- Multiple sessions on different sockets with complex routing
+- Testing or debugging tmux configuration
+
+### Manual Setup
+
+```bash
+SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets  # well-known dir for all agent sockets
+mkdir -p "$SOCKET_DIR"
+SOCKET="$SOCKET_DIR/claude.sock"                # keep agent sessions separate from your personal tmux
+SESSION=claude-python                           # slug-like names; avoid spaces
+tmux -S "$SOCKET" new -d -s "$SESSION" -n shell
+tmux -S "$SOCKET" send-keys -t "$SESSION":0.0 -- 'PYTHON_BASIC_REPL=1 python3 -q' Enter
+tmux -S "$SOCKET" capture-pane -p -J -t "$SESSION":0.0 -S -200  # watch output
+tmux -S "$SOCKET" kill-session -t "$SESSION"                   # clean up
+```
+
+After starting a session, ALWAYS tell the user how to monitor it:
+
+```
+To monitor this session yourself:
+  tmux -S "$SOCKET" attach -t claude-python
+
+Or to capture the output once:
+  tmux -S "$SOCKET" capture-pane -p -J -t claude-python:0.0 -S -200
+```
+
+### Socket Convention
+
+- Agents MUST place tmux sockets under `CLAUDE_TMUX_SOCKET_DIR` (defaults to `${TMPDIR:-/tmp}/claude-tmux-sockets`) and use `tmux -S "$SOCKET"` so we can enumerate/clean them. Create the dir first: `mkdir -p "$CLAUDE_TMUX_SOCKET_DIR"`.
+- Default socket path to use unless you must isolate further: `SOCKET="$CLAUDE_TMUX_SOCKET_DIR/claude.sock"`.
+
+### Targeting Panes and Naming
+
+- Target format: `{session}:{window}.{pane}`, defaults to `:0.0` if omitted. Keep names short (e.g., `claude-py`, `claude-gdb`).
+- Use `-S "$SOCKET"` consistently to stay on the private socket path. If you need user config, drop `-f /dev/null`; otherwise `-f /dev/null` gives a clean config.
+- Inspect: `tmux -S "$SOCKET" list-sessions`, `tmux -S "$SOCKET" list-panes -a`.
+
+### Finding Sessions Manually
+
+- List sessions on a specific socket: `./tools/find-sessions.sh -S "$SOCKET"`; add `-q partial-name` to filter.
+- Scan all sockets: `./tools/find-sessions.sh --all` (uses `CLAUDE_TMUX_SOCKET_DIR`)
+
+### Direct tmux send-keys
+
+- Prefer literal sends to avoid shell splitting: `tmux -S "$SOCKET" send-keys -t target -l -- "$cmd"`
+- When composing inline commands, use single quotes or ANSI C quoting to avoid expansion: `tmux ... send-keys -t target -- $'python3 -m http.server 8000'`.
+- To send control keys: `tmux ... send-keys -t target C-c`, `C-d`, `C-z`, `Escape`, etc.
+
+## Best Practices
+
+For comprehensive guidance on using the session registry effectively, see:
+
+- **[Session Registry Reference](references/session-registry.md)** - Complete documentation including:
+  - Registry architecture and file format
+  - Advanced usage patterns
+  - Troubleshooting guide
+  - Migration from manual socket management
+  - Best practices for session naming, cleanup strategies, and error handling
+  - When to use registry vs. manual approach
+
+Key recommendations:
+- Use descriptive session names (e.g., `claude-python-analysis`, not `session1`)
+- Run `./tools/cleanup-sessions.sh` periodically to remove dead sessions
+- Use `./tools/list-sessions.sh` to verify session health before long operations
+- For single-session workflows, omit `-s` flag to leverage auto-detection
+- For multiple sessions, always use `-s session-name` for clarity
+
+## Troubleshooting
+
+**Session not found in registry:**
+- Use `./tools/list-sessions.sh` to see all registered sessions
+- Session may have been created with `--no-register` flag
+- Registry file may be corrupted (check `$CLAUDE_TMUX_SOCKET_DIR/.sessions.json`)
+
+**Auto-detection fails with "Multiple sessions found":**
+- Specify session name explicitly with `-s my-session`
+- Or clean up unused sessions with `./tools/cleanup-sessions.sh`
+
+**Pane health check fails:**
+- Session may have crashed - check with `./tools/list-sessions.sh`
+- Tmux server may not be running - verify socket exists
+- Use `./tools/pane-health.sh -s session-name --format text` for detailed diagnostics
+
+**Registry lock timeout:**
+- Another process may be writing to registry
+- Wait a moment and retry
+- Check for stale lock file: `$CLAUDE_TMUX_SOCKET_DIR/.sessions.lock`
+
+For more detailed troubleshooting, see the [Session Registry Reference](references/session-registry.md#troubleshooting).

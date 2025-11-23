@@ -38,14 +38,25 @@
 #   -o pipefail: Pipe fails if any command in pipeline fails
 set -euo pipefail
 
+# Get script directory to source registry library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/registry.sh
+source "$SCRIPT_DIR/lib/registry.sh"
+
 usage() {
   cat <<'USAGE'
 Usage: wait-for-text.sh -t target -p pattern [options]
+   OR: wait-for-text.sh -s session -p pattern [options]
+   OR: wait-for-text.sh -p pattern [options]  # auto-detect single session
 
 Poll a tmux pane for text and exit when found.
 
+Target Selection (priority order):
+  -s, --session   session name (looks up socket/target in registry)
+  -t, --target    tmux target (session:window.pane), explicit
+  (no flags)      auto-detect if only one session in registry
+
 Options:
-  -t, --target    tmux target (session:window.pane), required
   -p, --pattern   regex pattern to look for, required
   -S, --socket    tmux socket path (for custom sockets via -S)
   -F, --fixed     treat pattern as a fixed string (grep -F)
@@ -53,6 +64,16 @@ Options:
   -i, --interval  poll interval in seconds (default: 0.5)
   -l, --lines     number of history lines to inspect (integer, default: 1000)
   -h, --help      show this help
+
+Examples:
+  # Using session name
+  wait-for-text.sh -s my-python -p '>>>' -T 10
+
+  # Auto-detect single session
+  wait-for-text.sh -p '>>>' -T 10
+
+  # Explicit socket/target (backward compatible)
+  wait-for-text.sh -S /tmp/my.sock -t session:0.0 -p '>>>'
 USAGE
 }
 
@@ -65,6 +86,7 @@ target=""     # tmux target pane (format: session:window.pane)
 pattern=""    # regex pattern or fixed string to search for
 
 # Optional parameters
+session_name=""  # session name for registry lookup
 socket=""     # tmux socket path (empty = use default tmux socket)
 grep_flag="-E"  # grep mode: -E (extended regex, default) or -F (fixed string)
 timeout=15    # seconds to wait before giving up
@@ -77,6 +99,7 @@ lines=1000    # number of pane history lines to capture and search
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    -s|--session)  session_name="${2-}"; shift 2 ;;  # Set session name for registry lookup
     -t|--target)   target="${2-}"; shift 2 ;;      # Set target pane
     -p|--pattern)  pattern="${2-}"; shift 2 ;;     # Set search pattern
     -S|--socket)   socket="${2-}"; shift 2 ;;      # Set custom socket path
@@ -90,10 +113,58 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ============================================================================
+# Session Resolution
+# ============================================================================
+# Resolve session name to socket/target if provided
+# Priority: 1) Explicit -S/-t, 2) Session name -s, 3) Auto-detect single session
+
+if [[ -n "$socket" && -n "$target" ]]; then
+  # Priority 1: Explicit socket and target provided (backward compatible)
+  : # Use as-is, no resolution needed
+elif [[ -n "$session_name" ]]; then
+  # Priority 2: Session name provided, look up in registry
+  if ! session_data=$(registry_get_session "$session_name" 2>/dev/null); then
+    echo "Error: Session '$session_name' not found in registry" >&2
+    echo "Use 'list-sessions.sh' to see available sessions" >&2
+    exit 1
+  fi
+
+  # Extract socket and target from session data
+  socket=$(echo "$session_data" | jq -r '.socket')
+  target=$(echo "$session_data" | jq -r '.target')
+
+  # Update activity timestamp
+  registry_update_activity "$session_name" 2>/dev/null || true
+elif [[ -z "$socket" && -z "$target" ]]; then
+  # Priority 3: No explicit params, try auto-detect single session
+  session_count=$(registry_list_sessions 2>/dev/null | jq '.sessions | length' 2>/dev/null || echo "0")
+
+  if [[ "$session_count" == "1" ]]; then
+    # Single session exists, auto-use it
+    auto_session_name=$(registry_list_sessions | jq -r '.sessions | keys[0]')
+    session_data=$(registry_get_session "$auto_session_name")
+    socket=$(echo "$session_data" | jq -r '.socket')
+    target=$(echo "$session_data" | jq -r '.target')
+
+    # Update activity timestamp
+    registry_update_activity "$auto_session_name" 2>/dev/null || true
+  elif [[ "$session_count" == "0" ]]; then
+    echo "Error: No sessions found in registry" >&2
+    echo "Create a session with 'create-session.sh' or specify -t and -S explicitly" >&2
+    exit 1
+  else
+    echo "Error: Multiple sessions found ($session_count total)" >&2
+    echo "Please specify session name with -s or use -t/-S explicitly" >&2
+    echo "Use 'list-sessions.sh' to see available sessions" >&2
+    exit 1
+  fi
+fi
+
+# ============================================================================
 # Validate Required Parameters and Dependencies
 # ============================================================================
 
-# Check that required parameters were provided
+# Check that required parameters were provided (after resolution)
 if [[ -z "$target" || -z "$pattern" ]]; then
   echo "target and pattern are required" >&2
   usage

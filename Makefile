@@ -1,4 +1,4 @@
-.PHONY: help sync validate validate-strict validate-yaml validate-json validate-structure clean test test-tmux-build test-tmux test-tmux-local test-tmux-shell lint format
+.PHONY: help sync validate validate-strict validate-yaml validate-json validate-structure clean test test-tmux-build test-tmux test-tmux-local test-tmux-shell test-session-registry test-session-registry-local test-registry test-create-session test-list-sessions test-cleanup-sessions test-session-integration lint format
 
 # Default target
 .DEFAULT_GOAL := help
@@ -14,13 +14,16 @@ help: ## Show this help message
 	@echo "$(CYAN)Claude Marketplace - Makefile Commands$(NC)"
 	@echo ""
 	@echo "$(GREEN)Setup:$(NC)"
-	@grep -E '^(sync|init):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+	@grep -E '^(sync|init):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-30s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(GREEN)Validation:$(NC)"
-	@grep -E '^validate.*:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+	@grep -E '^validate.*:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-30s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(GREEN)Testing:$(NC)"
+	@grep -E '^test.*:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-30s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(GREEN)Development:$(NC)"
-	@grep -E '^(test|lint|format|clean):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-20s$(NC) %s\n", $$1, $$2}'
+	@grep -E '^(lint|format|clean):.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-30s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 
 sync: ## Sync dependencies with uv (manual - uv run does this automatically)
@@ -73,6 +76,24 @@ DOCKER_IMAGE := tmux-tests
 DOCKER_RUN_OPTS ?= --rm -t
 DOCKER_RUN := docker run $(DOCKER_RUN_OPTS) -v $(PWD):/workspace:ro -w /workspace $(DOCKER_IMAGE)
 
+# Tmux test groups
+TMUX_BASE_TESTS := pane-health wait-for-text find-sessions safe-send
+TMUX_SESSION_REGISTRY_TESTS := registry create-session list-sessions cleanup-sessions session-integration
+TMUX_TESTS := $(TMUX_BASE_TESTS) $(TMUX_SESSION_REGISTRY_TESTS)
+
+# Helper macros for running tests
+define run_test_docker
+	@echo ""
+	@echo "$(YELLOW)Running $1.sh tests...$(NC)"
+	$(DOCKER_RUN) tests/bash/test-$1.sh
+endef
+
+define run_test_local
+	@echo ""
+	@echo "$(YELLOW)Running $1.sh tests...$(NC)"
+	tests/bash/test-$1.sh
+endef
+
 test-tmux-build: ## Build Docker image for tmux tests
 	@echo "$(CYAN)Building Docker image for tmux tests...$(NC)"
 	docker build -f tests/Dockerfile.tests -t $(DOCKER_IMAGE) .
@@ -80,20 +101,15 @@ test-tmux-build: ## Build Docker image for tmux tests
 
 test-tmux: test-tmux-build ## Run all tmux tool tests in Docker
 	@echo "$(CYAN)Running all tmux tests in Docker...$(NC)"
+	$(foreach t,$(TMUX_TESTS),$(call run_test_docker,$(t)))
 	@echo ""
-	@echo "$(YELLOW)Running pane-health.sh tests...$(NC)"
-	$(DOCKER_RUN) tests/bash/test-pane-health.sh
+	@echo "$(GREEN)✓ All tmux tests passed ($(words $(TMUX_TESTS)) test suites)$(NC)"
+
+test-session-registry: test-tmux-build ## Run tmux session registry tests in Docker
+	@echo "$(CYAN)Running tmux session registry tests in Docker...$(NC)"
+	$(foreach t,$(TMUX_SESSION_REGISTRY_TESTS),$(call run_test_docker,$(t)))
 	@echo ""
-	@echo "$(YELLOW)Running wait-for-text.sh tests...$(NC)"
-	$(DOCKER_RUN) tests/bash/test-wait-for-text.sh
-	@echo ""
-	@echo "$(YELLOW)Running find-sessions.sh tests...$(NC)"
-	$(DOCKER_RUN) tests/bash/test-find-sessions.sh
-	@echo ""
-	@echo "$(YELLOW)Running safe-send.sh tests...$(NC)"
-	$(DOCKER_RUN) tests/bash/test-safe-send.sh
-	@echo ""
-	@echo "$(GREEN)✓ All tmux tests passed$(NC)"
+	@echo "$(GREEN)✓ Session registry tests passed ($(words $(TMUX_SESSION_REGISTRY_TESTS)) test suites)$(NC)"
 
 test-tmux/%: test-tmux-build ## Run specific tmux test (e.g., make test-tmux/pane-health)
 	@echo "$(CYAN)Running tmux test: $*$(NC)"
@@ -101,20 +117,31 @@ test-tmux/%: test-tmux-build ## Run specific tmux test (e.g., make test-tmux/pan
 
 test-tmux-local: ## Run tmux tests locally (without Docker)
 	@echo "$(CYAN)Running tmux tests locally...$(NC)"
+	$(foreach t,$(TMUX_TESTS),$(call run_test_local,$(t)))
 	@echo ""
-	@echo "$(YELLOW)Running pane-health.sh tests...$(NC)"
-	tests/bash/test-pane-health.sh
+	@echo "$(GREEN)✓ All tmux tests passed ($(words $(TMUX_TESTS)) test suites)$(NC)"
+
+test-session-registry-local: ## Run session registry tests locally (without Docker)
+	@echo "$(CYAN)Running session registry tests locally...$(NC)"
+	$(foreach t,$(TMUX_SESSION_REGISTRY_TESTS),$(call run_test_local,$(t)))
 	@echo ""
-	@echo "$(YELLOW)Running wait-for-text.sh tests...$(NC)"
-	tests/bash/test-wait-for-text.sh
-	@echo ""
-	@echo "$(YELLOW)Running find-sessions.sh tests...$(NC)"
-	tests/bash/test-find-sessions.sh
-	@echo ""
-	@echo "$(YELLOW)Running safe-send.sh tests...$(NC)"
-	tests/bash/test-safe-send.sh
-	@echo ""
-	@echo "$(GREEN)✓ All tmux tests passed$(NC)"
+	@echo "$(GREEN)✓ Session registry tests passed ($(words $(TMUX_SESSION_REGISTRY_TESTS)) test suites)$(NC)"
+
+# Individual test targets (Docker)
+test-registry: test-tmux-build ## Run registry library tests in Docker
+	$(call run_test_docker,registry)
+
+test-create-session: test-tmux-build ## Run create-session.sh tests in Docker
+	$(call run_test_docker,create-session)
+
+test-list-sessions: test-tmux-build ## Run list-sessions.sh tests in Docker
+	$(call run_test_docker,list-sessions)
+
+test-cleanup-sessions: test-tmux-build ## Run cleanup-sessions.sh tests in Docker
+	$(call run_test_docker,cleanup-sessions)
+
+test-session-integration: test-tmux-build ## Run session integration tests in Docker
+	$(call run_test_docker,session-integration)
 
 test-tmux-shell: test-tmux-build ## Open interactive shell in tmux test container
 	@echo "$(CYAN)Opening shell in tmux test container...$(NC)"

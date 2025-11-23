@@ -53,14 +53,25 @@
 #   -o pipefail: Pipe fails if any command in pipeline fails
 set -euo pipefail
 
+# Get script directory to source registry library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/registry.sh
+source "$SCRIPT_DIR/lib/registry.sh"
+
 usage() {
   cat <<'USAGE'
 Usage: pane-health.sh -t target [options]
+   OR: pane-health.sh -s session [options]
+   OR: pane-health.sh [options]  # auto-detect single session
 
 Check health status of a tmux pane and report structured results.
 
+Target Selection (priority order):
+  -s, --session   session name (looks up socket/target in registry)
+  -t, --target    tmux target (session:window.pane), explicit
+  (no flags)      auto-detect if only one session in registry
+
 Options:
-  -t, --target    tmux target (session:window.pane), required
   -S, --socket    tmux socket path (for custom sockets via -S)
   --format        output format: json|text (default: json)
   -h, --help      show this help
@@ -77,14 +88,17 @@ Output Formats:
   text - Human-readable status message
 
 Examples:
-  # Check health with JSON output
+  # Using session name
+  ./pane-health.sh -s my-python
+
+  # Auto-detect single session
+  ./pane-health.sh --format text
+
+  # Explicit socket/target (backward compatible)
   ./pane-health.sh -t session:0.0 -S /tmp/claude.sock
 
-  # Check health with text output
-  ./pane-health.sh -t myapp:0.0 --format text
-
-  # Use in script
-  if ./pane-health.sh -t session:0.0; then
+  # Use in script with session registry
+  if ./pane-health.sh -s my-session; then
     echo "Pane is ready for commands"
   fi
 USAGE
@@ -98,6 +112,7 @@ USAGE
 target=""           # tmux target pane (format: session:window.pane)
 
 # Optional parameters
+session_name=""     # session name for registry lookup
 socket=""           # tmux socket path (empty = use default tmux socket)
 output_format="json"  # output format: json or text
 
@@ -107,6 +122,7 @@ output_format="json"  # output format: json or text
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    -s|--session)  session_name="${2-}"; shift 2 ;;  # Set session name for registry lookup
     -t|--target)   target="${2-}"; shift 2 ;;      # Set target pane
     -S|--socket)   socket="${2-}"; shift 2 ;;      # Set custom socket path
     --format)      output_format="${2-}"; shift 2 ;;  # Set output format
@@ -116,10 +132,58 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ============================================================================
+# Session Resolution
+# ============================================================================
+# Resolve session name to socket/target if provided
+# Priority: 1) Explicit -S/-t, 2) Session name -s, 3) Auto-detect single session
+
+if [[ -n "$socket" && -n "$target" ]]; then
+  # Priority 1: Explicit socket and target provided (backward compatible)
+  : # Use as-is, no resolution needed
+elif [[ -n "$session_name" ]]; then
+  # Priority 2: Session name provided, look up in registry
+  if ! session_data=$(registry_get_session "$session_name" 2>/dev/null); then
+    echo "Error: Session '$session_name' not found in registry" >&2
+    echo "Use 'list-sessions.sh' to see available sessions" >&2
+    exit 1
+  fi
+
+  # Extract socket and target from session data
+  socket=$(echo "$session_data" | jq -r '.socket')
+  target=$(echo "$session_data" | jq -r '.target')
+
+  # Update activity timestamp
+  registry_update_activity "$session_name" 2>/dev/null || true
+elif [[ -z "$socket" && -z "$target" ]]; then
+  # Priority 3: No explicit params, try auto-detect single session
+  session_count=$(registry_list_sessions 2>/dev/null | jq '.sessions | length' 2>/dev/null || echo "0")
+
+  if [[ "$session_count" == "1" ]]; then
+    # Single session exists, auto-use it
+    auto_session_name=$(registry_list_sessions | jq -r '.sessions | keys[0]')
+    session_data=$(registry_get_session "$auto_session_name")
+    socket=$(echo "$session_data" | jq -r '.socket')
+    target=$(echo "$session_data" | jq -r '.target')
+
+    # Update activity timestamp
+    registry_update_activity "$auto_session_name" 2>/dev/null || true
+  elif [[ "$session_count" == "0" ]]; then
+    echo "Error: No sessions found in registry" >&2
+    echo "Create a session with 'create-session.sh' or specify -t and -S explicitly" >&2
+    exit 1
+  else
+    echo "Error: Multiple sessions found ($session_count total)" >&2
+    echo "Please specify session name with -s or use -t/-S explicitly" >&2
+    echo "Use 'list-sessions.sh' to see available sessions" >&2
+    exit 1
+  fi
+fi
+
+# ============================================================================
 # Validate Required Parameters and Dependencies
 # ============================================================================
 
-# Check that required parameters were provided
+# Check that required parameters were provided (after resolution)
 if [[ -z "$target" ]]; then
   echo "target is required" >&2
   usage

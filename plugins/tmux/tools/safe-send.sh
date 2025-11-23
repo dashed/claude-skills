@@ -54,14 +54,25 @@
 #   -o pipefail: Pipe fails if any command in pipeline fails
 set -euo pipefail
 
+# Get script directory to source registry library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/registry.sh
+source "$SCRIPT_DIR/lib/registry.sh"
+
 usage() {
   cat <<'USAGE'
 Usage: safe-send.sh -t target -c command [options]
+   OR: safe-send.sh -s session -c command [options]
+   OR: safe-send.sh -c command [options]  # auto-detect single session
 
 Send keystrokes to a tmux pane with automatic retries and readiness checking.
 
+Target Selection (priority order):
+  -s, --session   session name (looks up socket/target in registry)
+  -t, --target    tmux target (session:window.pane), explicit
+  (no flags)      auto-detect if only one session in registry
+
 Options:
-  -t, --target    tmux target (session:window.pane), required
   -c, --command   command to send (empty = just Enter)
   -S, --socket    tmux socket path (for custom sockets via -S)
   -L, --socket-name  tmux socket name (for named sockets via -L)
@@ -116,6 +127,7 @@ target=""          # tmux target pane (format: session:window.pane)
 command="__NOT_SET__"  # command to send to the pane (sentinel value = not provided)
 
 # Optional parameters
+session_name=""    # session name for registry lookup
 socket=""          # tmux socket path (empty = use default tmux socket)
 socket_name=""     # tmux socket name (for -L option)
 literal_mode=false # use send-keys -l (literal mode)
@@ -131,6 +143,7 @@ verbose=false      # enable verbose logging
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    -s|--session)      session_name="${2-}"; shift 2 ;;
     -t|--target)       target="${2-}"; shift 2 ;;
     -c|--command)      command="${2-}"; shift 2 ;;
     -S|--socket)       socket="${2-}"; shift 2 ;;
@@ -147,10 +160,66 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ============================================================================
+# Session Resolution
+# ============================================================================
+# Resolve session name to socket/target if provided
+# Priority: 1) Explicit -S/-t, 2) Session name -s, 3) Auto-detect single session
+
+if [[ -n "$socket" && -n "$target" ]]; then
+  # Priority 1: Explicit socket and target provided (backward compatible)
+  : # Use as-is, no resolution needed
+elif [[ -n "$session_name" ]]; then
+  # Priority 2: Session name provided, look up in registry
+  if ! session_data=$(registry_get_session "$session_name" 2>/dev/null); then
+    echo "Error: Session '$session_name' not found in registry" >&2
+    echo "Use 'list-sessions.sh' to see available sessions" >&2
+    exit 4
+  fi
+
+  # Extract socket and target from session data
+  socket=$(echo "$session_data" | jq -r '.socket')
+  target=$(echo "$session_data" | jq -r '.target')
+
+  # Update activity timestamp
+  registry_update_activity "$session_name" 2>/dev/null || true
+
+  if [[ "$verbose" == true ]]; then
+    echo "Resolved session '$session_name': socket=$socket, target=$target" >&2
+  fi
+elif [[ -z "$socket" && -z "$target" ]]; then
+  # Priority 3: No explicit params, try auto-detect single session
+  session_count=$(registry_list_sessions 2>/dev/null | jq '.sessions | length' 2>/dev/null || echo "0")
+
+  if [[ "$session_count" == "1" ]]; then
+    # Single session exists, auto-use it
+    auto_session_name=$(registry_list_sessions | jq -r '.sessions | keys[0]')
+    session_data=$(registry_get_session "$auto_session_name")
+    socket=$(echo "$session_data" | jq -r '.socket')
+    target=$(echo "$session_data" | jq -r '.target')
+
+    # Update activity timestamp
+    registry_update_activity "$auto_session_name" 2>/dev/null || true
+
+    if [[ "$verbose" == true ]]; then
+      echo "Auto-detected single session '$auto_session_name': socket=$socket, target=$target" >&2
+    fi
+  elif [[ "$session_count" == "0" ]]; then
+    echo "Error: No sessions found in registry" >&2
+    echo "Create a session with 'create-session.sh' or specify -t and -S explicitly" >&2
+    exit 4
+  else
+    echo "Error: Multiple sessions found ($session_count total)" >&2
+    echo "Please specify session name with -s or use -t/-S explicitly" >&2
+    echo "Use 'list-sessions.sh' to see available sessions" >&2
+    exit 4
+  fi
+fi
+
+# ============================================================================
 # Validate Required Parameters and Dependencies
 # ============================================================================
 
-# Check that required parameters were provided
+# Check that required parameters were provided (after resolution)
 if [[ -z "$target" ]]; then
   echo "target is required" >&2
   usage

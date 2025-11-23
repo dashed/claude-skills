@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- tmux skill: Session registry system for automatic session tracking (~80% boilerplate reduction)
+- tmux skill: tools/lib/registry.sh library for session management (415 lines, 28/28 tests passing)
+- tmux skill: Portable file locking (flock on Linux, mkdir-based on macOS)
+- tmux skill: create-session.sh tool for creating and registering sessions (229 lines, 20/20 tests passing)
+- tmux skill: list-sessions.sh tool for listing sessions with health status (297 lines, 20/20 tests passing)
+- tmux skill: cleanup-sessions.sh tool for removing dead/stale sessions (233 lines, 15/15 tests passing)
+- tmux skill: Session name lookup via `-s` flag (auto-detection when single session exists)
+- tmux skill: Integration test suite (test-session-integration.sh, 12/12 tests passing)
+- tmux skill: Comprehensive session registry reference documentation (references/session-registry.md, 530+ lines)
+- tmux skill: Session registry architecture documentation in notes/tmux/README.md
+- tmux skill: Makefile test targets for session registry (test-session-registry, test-create-session, test-list-sessions, test-cleanup-sessions, test-session-integration)
+- tmux skill: Docker-based test infrastructure for all tmux tests (9 test suites total)
+- tmux skill: Test grouping in Makefile with helper macros for consistent execution
+
+### Changed
+- tmux skill: safe-send.sh now supports `-s` flag for session name lookup
+- tmux skill: wait-for-text.sh now supports `-s` flag for session name lookup
+- tmux skill: pane-health.sh now supports `-s` flag for session name lookup
+- tmux skill: All core tools now support 3-tier session resolution (explicit flags > session name > auto-detect)
+- tmux skill: SKILL.md restructured to make session registry the default approach (553 lines)
+- tmux skill: Removed "RECOMMENDED" and "NEW" terminology from SKILL.md (mental model shift to "this is the way")
+- tmux skill: Added Quickstart section showing session registry as primary usage
+- tmux skill: Moved manual socket management to "Alternative: Manual Socket Management" section
+- tmux skill: Added Best Practices and Troubleshooting sections to SKILL.md
+- tmux skill: Updated notes/tmux/README.md with session registry documentation (v1.2.0)
+- tmux skill: Updated helper tools count from 4 to 7 in documentation
+- tmux skill: Updated Related Documentation section with all new tools and library
+- tmux skill: Removed create-session.sh and cleanup-sessions.sh from Future Enhancements (now implemented)
+- tmux skill: Enhanced test-safe-send.sh with 8 unit tests for session registry features (29 total tests, all passing)
+- tmux skill: Enhanced test-wait-for-text.sh with 8 unit tests for session registry features (21 total tests, all passing)
+- tmux skill: Enhanced test-pane-health.sh with 8 unit tests for session registry features (26 total tests, all passing)
+- tmux skill: Test coverage now includes -s flag validation, auto-detection, and priority resolution (24 new tests)
+- tmux skill: Version bumped to 1.2.0
+
+### Fixed
+- tmux skill: Fixed bash syntax errors in test cleanup functions (replaced invalid glob pattern redirection with shopt -s nullglob)
+- tmux skill: Fixed test logic in cleanup-sessions test for --older-than flag validation
+
 ## [0.3.0] - 2025-11-23
 
 ### Added
