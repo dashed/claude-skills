@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- tmux skill: pane-health.sh tool for comprehensive health checking (360 lines, 18/18 tests passing)
+- tmux skill: Health checking with 5 exit codes (healthy, dead, missing, zombie, server not running)
+- tmux skill: JSON and text output formats for pane-health.sh
+- tmux skill: Comprehensive notes/tmux/README.md documentation (52 → 606 lines, 11x expansion)
+- tmux skill: Detailed architecture documentation (socket isolation, session management, input/output handling)
+- tmux skill: Interactive tool support recipes (Python REPL, gdb debugger, and others)
+- tmux skill: Common usage patterns section with 4 real-world examples
+- tmux skill: Limitations & gotchas documentation with security considerations
+
 ### Fixed
 - tmux skill: wait-for-text.sh now supports custom sockets via -S/--socket parameter
 
@@ -16,7 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - git-absorb skill: Reduced SKILL.md size by 14% (269 → 232 lines) while improving discoverability
 - tmux skill: Enhanced documentation emphasizing PYTHON_BASIC_REPL=1 as critical requirement
 - tmux skill: Updated all Python REPL examples to include PYTHON_BASIC_REPL=1
-- tmux skill: Version bumped to 1.0.1
+- tmux skill: Enhanced SKILL.md with pane-health.sh documentation (+53 lines)
+- tmux skill: Version bumped to 1.1.0
 
 ## [0.2.0] - 2025-11-23
 

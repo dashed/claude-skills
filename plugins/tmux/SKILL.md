@@ -114,3 +114,56 @@ SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets
 SOCKET="$SOCKET_DIR/claude.sock"
 ./tools/wait-for-text.sh -S "$SOCKET" -t "$SESSION":0.0 -p '^>>>' -T 15
 ```
+
+## Helper: pane-health.sh
+
+`./tools/pane-health.sh` checks the health status of a tmux pane before operations to prevent "pane not found" errors and detect failures early. Essential for reliable automation.
+
+```bash
+./tools/pane-health.sh -t session:0.0 [-S socket] [--format json|text]
+```
+
+- `-t`/`--target` pane target (required)
+- `-S`/`--socket` tmux socket path (for custom sockets via -S)
+- `--format` output format: `json` (default) or `text`
+- Exits with status codes indicating health state
+
+**Exit codes:**
+- `0` - Healthy (pane alive, process running)
+- `1` - Dead (pane marked as dead)
+- `2` - Missing (pane/session doesn't exist)
+- `3` - Zombie (process exited but pane still exists)
+- `4` - Server not running
+
+**JSON output includes:**
+- `status`: overall health (`healthy`, `dead`, `missing`, `zombie`, `server_not_running`)
+- `server_running`: boolean
+- `session_exists`: boolean
+- `pane_exists`: boolean
+- `pane_dead`: boolean
+- `pid`: process ID (or null)
+- `process_running`: boolean
+
+**Use cases:**
+- Before sending commands: verify pane is ready
+- After errors: determine if pane crashed
+- Periodic health checks during long operations
+- Cleanup decision: which panes to kill vs keep
+
+**Example with custom socket (JSON):**
+```bash
+SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets
+SOCKET="$SOCKET_DIR/claude.sock"
+./tools/pane-health.sh -S "$SOCKET" -t "$SESSION":0.0
+# Output: {"status": "healthy", "server_running": true, ...}
+```
+
+**Example in conditional logic:**
+```bash
+if ./tools/pane-health.sh -t "$SESSION":0.0 --format text; then
+  echo "Pane is ready for commands"
+  tmux -S "$SOCKET" send-keys -t "$SESSION":0.0 "print('hello')" Enter
+else
+  echo "Pane is not healthy (exit code: $?)"
+fi
+```
