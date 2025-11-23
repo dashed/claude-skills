@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- tmux skill: wait-for-text.sh now supports custom sockets via -S/--socket parameter
+
 ### Changed
 - git-absorb skill: Implemented progressive disclosure pattern with references/ directory
 - git-absorb skill: Added comprehensive reference documentation (advanced-usage.md, configuration.md)
 - git-absorb skill: Reduced SKILL.md size by 14% (269 → 232 lines) while improving discoverability
+- tmux skill: Enhanced documentation emphasizing PYTHON_BASIC_REPL=1 as critical requirement
+- tmux skill: Updated all Python REPL examples to include PYTHON_BASIC_REPL=1
+- tmux skill: Version bumped to 1.0.1
 
 ## [0.2.0] - 2025-11-23
 

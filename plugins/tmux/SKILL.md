@@ -16,7 +16,7 @@ mkdir -p "$SOCKET_DIR"
 SOCKET="$SOCKET_DIR/claude.sock"                # keep agent sessions separate from your personal tmux
 SESSION=claude-python                           # slug-like names; avoid spaces
 tmux -S "$SOCKET" new -d -s "$SESSION" -n shell
-tmux -S "$SOCKET" send-keys -t "$SESSION":0.0 -- 'python3 -q' Enter
+tmux -S "$SOCKET" send-keys -t "$SESSION":0.0 -- 'PYTHON_BASIC_REPL=1 python3 -q' Enter
 tmux -S "$SOCKET" capture-pane -p -J -t "$SESSION":0.0 -S -200  # watch output
 tmux -S "$SOCKET" kill-session -t "$SESSION"                   # clean up
 ```
@@ -67,19 +67,22 @@ This must ALWAYS be printed right after a session was started and once again at 
 Some special rules for processes:
 
 - when asked to debug, use lldb by default
-- when starting a python interactive shell, always set the `PYTHON_BASIC_REPL=1` environment variable. This is very important as the non-basic console interferes with your send-keys.
+- **CRITICAL**: When starting a Python interactive shell, **always** set the `PYTHON_BASIC_REPL=1` environment variable before launching Python. This is **essential** - the non-basic console (fancy REPL with syntax highlighting) interferes with send-keys and will cause commands to fail silently.
+  ```bash
+  tmux -S "$SOCKET" send-keys -t "$SESSION":0.0 -- 'PYTHON_BASIC_REPL=1 python3 -q' Enter
+  ```
 
 ## Synchronizing / waiting for prompts
 
 - Use timed polling to avoid races with interactive tools. Example: wait for a Python prompt before sending code:
   ```bash
-  ./tools/wait-for-text.sh -t "$SESSION":0.0 -p '^>>>' -T 15 -l 4000
+  ./tools/wait-for-text.sh -S "$SOCKET" -t "$SESSION":0.0 -p '^>>>' -T 15 -l 4000
   ```
 - For long-running commands, poll for completion text (`"Type quit to exit"`, `"Program exited"`, etc.) before proceeding.
 
 ## Interactive tool recipes
 
-- **Python REPL**: `tmux ... send-keys -- 'python3 -q' Enter`; wait for `^>>>`; send code with `-l`; interrupt with `C-c`. Always with `PYTHON_BASIC_REPL`.
+- **Python REPL**: `tmux ... send-keys -- 'PYTHON_BASIC_REPL=1 python3 -q' Enter`; wait for `^>>>`; send code with `-l`; interrupt with `C-c`. **Always** with `PYTHON_BASIC_REPL=1`.
 - **gdb**: `tmux ... send-keys -- 'gdb --quiet ./a.out' Enter`; disable paging `tmux ... send-keys -- 'set pagination off' Enter`; break with `C-c`; issue `bt`, `info locals`, etc.; exit via `quit` then confirm `y`.
 - **Other TTY apps** (ipdb, psql, mysql, node, bash): same pattern—start the program, poll for its prompt, then send literal text and Enter.
 
@@ -94,12 +97,20 @@ Some special rules for processes:
 `./tools/wait-for-text.sh` polls a pane for a regex (or fixed string) with a timeout. Works on Linux/macOS with bash + tmux + grep.
 
 ```bash
-./tools/wait-for-text.sh -t session:0.0 -p 'pattern' [-F] [-T 20] [-i 0.5] [-l 2000]
+./tools/wait-for-text.sh -t session:0.0 -p 'pattern' [-S socket] [-F] [-T 20] [-i 0.5] [-l 2000]
 ```
 
 - `-t`/`--target` pane target (required)
 - `-p`/`--pattern` regex to match (required); add `-F` for fixed string
+- `-S`/`--socket` tmux socket path (for custom sockets via -S)
 - `-T` timeout seconds (integer, default 15)
 - `-i` poll interval seconds (default 0.5)
 - `-l` history lines to search from the pane (integer, default 1000)
 - Exits 0 on first match, 1 on timeout. On failure prints the last captured text to stderr to aid debugging.
+
+**Example with custom socket:**
+```bash
+SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets
+SOCKET="$SOCKET_DIR/claude.sock"
+./tools/wait-for-text.sh -S "$SOCKET" -t "$SESSION":0.0 -p '^>>>' -T 15
+```
