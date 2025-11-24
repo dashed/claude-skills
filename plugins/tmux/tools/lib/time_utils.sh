@@ -15,6 +15,12 @@
 time_ago() {
   local timestamp="$1"
 
+  # Handle empty or missing timestamp
+  if [[ -z "$timestamp" ]]; then
+    echo "unknown"
+    return
+  fi
+
   # Normalize 'Z' to explicit UTC offset for cross-platform compatibility
   local ts_normalized="${timestamp/Z/+0000}"
 

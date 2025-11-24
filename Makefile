@@ -88,7 +88,7 @@ DOCKER_RUN := docker run $(DOCKER_RUN_OPTS) -v $(PWD):/workspace:ro -w /workspac
 
 # Tmux test groups
 TMUX_BASE_TESTS := pane-health wait-for-text find-sessions safe-send
-TMUX_SESSION_REGISTRY_TESTS := registry create-session list-sessions cleanup-sessions session-integration
+TMUX_SESSION_REGISTRY_TESTS := registry create-session list-sessions cleanup-sessions kill-session session-integration
 TMUX_TESTS := $(TMUX_BASE_TESTS) $(TMUX_SESSION_REGISTRY_TESTS)
 
 # Helper macros for running tests
@@ -149,6 +149,9 @@ test-list-sessions: test-tmux-build ## Run list-sessions.sh tests in Docker
 
 test-cleanup-sessions: test-tmux-build ## Run cleanup-sessions.sh tests in Docker
 	$(call run_test_docker,cleanup-sessions)
+
+test-kill-session: test-tmux-build ## Run kill-session.sh tests in Docker
+	$(call run_test_docker,kill-session)
 
 test-session-integration: test-tmux-build ## Run session integration tests in Docker
 	$(call run_test_docker,session-integration)

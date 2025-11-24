@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2025-11-23
+
+### Added
+- tmux skill: kill-session.sh tool for atomically killing tmux sessions and removing from registry
+- tmux skill: Three operation modes for kill-session.sh: registry lookup (-s), explicit socket/target (-S/-t), auto-detect
+- tmux skill: Comprehensive test suite for kill-session.sh (24 plugin-level tests, 17 marketplace-level tests)
+- tmux skill: Dry-run mode (--dry-run) and verbose mode (-v) for kill-session.sh
+
+### Fixed
+- tmux skill: time_ago() function now properly handles empty/missing timestamps (returns "unknown" instead of incorrect negative values)
+
+### Changed
+- tmux skill: Version bumped to 1.4.0
+
 ## [0.7.1] - 2025-11-23
 
 ### Added
@@ -190,7 +204,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Marketplace metadata and owner information
 - Plugin entry with `skills` field for proper skill loading
 
-[Unreleased]: https://github.com/dashed/claude-marketplace/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/dashed/claude-marketplace/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/dashed/claude-marketplace/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/dashed/claude-marketplace/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/dashed/claude-marketplace/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/dashed/claude-marketplace/compare/v0.6.1...v0.6.2

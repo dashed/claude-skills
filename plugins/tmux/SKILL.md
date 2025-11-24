@@ -47,7 +47,7 @@ Or to capture the output once:
   tmux -S <socket> capture-pane -p -J -t <session-name>:0.0 -S -200
 ```
 
-This must ALWAYS be printed right after a session was started and once again at the end of the tool loop. But the earlier you send it, the happier the user will be.
+This must ALWAYS be printed right after a session was started (i.e. right before you start using the session) and once again at the end of the tool loop. But the earlier you send it, the happier the user will be.
 
 ## How It Works
 
@@ -123,7 +123,7 @@ Some special rules for processes:
   ```bash
   # When using create-session.sh, this is automatic with --python flag
   ./tools/create-session.sh -n my-python --python
-
+  
   # When creating manually:
   tmux -S "$SOCKET" send-keys -t "$SESSION":0.0 -- 'PYTHON_BASIC_REPL=1 python3 -q' Enter
   ```
@@ -153,9 +153,21 @@ For long-running commands, poll for completion text (`"Type quit to exit"`, `"Pr
 
 ## Cleanup
 
-Using the session registry:
+Killing sessions (recommended - removes both tmux session and registry entry):
 ```bash
-# Remove dead sessions
+# Kill a specific session by name
+./tools/kill-session.sh -s session-name
+
+# Auto-detect and kill single session
+./tools/kill-session.sh
+
+# Dry-run to see what would be killed
+./tools/kill-session.sh -s session-name --dry-run
+```
+
+Registry cleanup (removes registry entries only, doesn't kill tmux sessions):
+```bash
+# Remove dead sessions from registry
 ./tools/cleanup-sessions.sh
 
 # Remove sessions older than 1 hour
@@ -286,6 +298,63 @@ Total: 2 | Alive: 1 | Dead: 1
 ```
 
 **Duration format:** `30m`, `2h`, `1d`, `3600s`
+
+## Helper: kill-session.sh
+
+Kill tmux session and remove from registry (atomic operation).
+
+**Purpose**: Provides a single operation to fully clean up a session by both killing the tmux session and removing it from the registry.
+
+**Key features**:
+- Atomic operation (kills session AND deregisters)
+- Three operation modes: registry lookup, explicit socket/target, auto-detect
+- Dry-run support for safety
+- Proper exit codes for all scenarios
+
+**Usage**:
+```bash
+# Kill session by name (registry lookup)
+tools/kill-session.sh -s claude-python
+
+# Kill with explicit socket and target
+tools/kill-session.sh -S /tmp/claude.sock -t my-session:0.0
+
+# Auto-detect single session
+tools/kill-session.sh
+
+# Dry-run to see what would happen
+tools/kill-session.sh -s claude-python --dry-run
+```
+
+**Options**:
+- `-s NAME` - Session name (uses registry lookup)
+- `-S PATH` - Socket path (explicit mode, requires -t)
+- `-t TARGET` - Target pane (explicit mode, requires -S)
+- `--dry-run` - Show operations without executing
+- `-v` - Verbose output
+- `-h` - Show help
+
+**Exit codes**:
+- 0 - Complete success (killed AND deregistered)
+- 1 - Partial success (one operation succeeded)
+- 2 - Complete failure (both failed or not found)
+- 3 - Invalid arguments
+
+**Priority order** (when multiple methods specified):
+1. Explicit -S and -t (highest priority)
+2. Session name -s (registry lookup)
+3. Auto-detect (if no flags and only one session exists)
+
+**When to use**:
+- Cleaning up after interactive debugging sessions
+- Removing sessions that are no longer needed
+- Ensuring complete cleanup (both tmux and registry)
+- Batch operations with proper error handling
+
+**Notes**:
+- Unlike `cleanup-sessions.sh` (which only removes registry entries), this tool also kills the actual tmux session
+- Use auto-detect mode when you have only one session and want quick cleanup
+- Dry-run mode is helpful to verify what will be cleaned up before executing
 
 ## Helper: safe-send.sh
 
