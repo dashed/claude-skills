@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.3.1] - 2025-11-23
+
+### Added
+- Session lifecycle guide in references/session-lifecycle.md with practical day-to-day workflows
+- Common Workflows section in SKILL.md referencing the lifecycle guide
+- Four complete workflow examples: ephemeral sessions, long-running analysis, crash recovery, multi-session workspaces
+- Three decision trees for common choices: create vs reuse, cleanup timing, error handling
+- Tool reference matrix mapping lifecycle stages to specific tools
+- Troubleshooting quick reference for common problems (session not found, commands not executing, cleanup issues)
+- Best practices guide with 10 DO's and 10 DON'Ts with examples
+
 ## [1.3.0] - 2025-11-23
 
 ### Added

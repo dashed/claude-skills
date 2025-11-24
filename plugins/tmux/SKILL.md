@@ -69,6 +69,17 @@ Tools automatically choose the right session using this priority order:
 - Activity timestamps for cleanup decisions
 - Fully backward compatible
 
+## Common Workflows
+
+For practical examples of managing tmux sessions through their lifecycle, see the [Session Lifecycle Guide](./references/session-lifecycle.md).
+
+This guide covers:
+- **Daily workflows**: Ephemeral sessions, long-running analysis, crash recovery, multi-session workspaces
+- **Decision trees**: Create vs reuse, cleanup timing, error handling
+- **Tool reference matrix**: Which tools to use at each lifecycle stage
+- **Troubleshooting**: Quick fixes for common problems (session not found, commands not executing, cleanup issues)
+- **Best practices**: 10 DO's and 10 DON'Ts with examples
+
 ## Finding sessions
 
 List all registered sessions with health status:

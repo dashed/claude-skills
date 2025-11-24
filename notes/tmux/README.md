@@ -838,6 +838,70 @@ Comprehensive test suite validates all failure modes:
 4. **Test error recovery** (kill process mid-operation)
 5. **Test concurrent sessions** (multiple sockets simultaneously)
 
+## Session Lifecycle Documentation
+
+**NEW**: Comprehensive lifecycle analysis and user story mapping for tmux sessions:
+
+### Quick Reference
+
+- **[lifecycle-quick-reference.md](./lifecycle-quick-reference.md)** (23 KB)
+  - Visual ASCII lifecycle state diagram
+  - Quick decision trees for daily use (3 trees)
+  - Command checklists (setup, debugging, cleanup)
+  - Tool matrix and quick reference
+  - Error diagnosis reference (15+ scenarios)
+  - Complete integration examples (3 workflows)
+  - **Start here** for practical, day-to-day usage
+
+### Deep Dive
+
+- **[lifecycle-architecture.md](./lifecycle-architecture.md)** (38 KB)
+  - Complete architectural guidance (10 lifecycle stages)
+  - Mental models (container, job controller, service discovery)
+  - User stories with acceptance criteria (9 stories)
+  - Decision matrices for common choices (3 matrices)
+  - Best practices (20+ principles)
+  - Missing operations analysis (10 gaps identified)
+  - Troubleshooting by lifecycle stage
+  - **Reference this** for comprehensive understanding and architectural decisions
+
+### Key Lifecycle Stages
+
+1. **Pre-flight** → Check existing sessions
+2. **Spawn** → Create new session
+3. **Init** → Wait for startup
+4. **Active Use** → Send commands, wait for output
+5. **Idle** → Session exists but unused
+6. **Stale** → Old, potentially zombie
+7. **Error States** → Dead, missing, zombie
+8. **Cleanup** → Remove from registry
+9. **Reconnection** (optional) → Resume interrupted sessions
+10. **Quarantine** (optional) → Forensics on failed sessions
+
+### Supported User Stories
+
+- Quick analysis (ephemeral sessions)
+- Long-running REPL (persistent workspace)
+- Interruption recovery (network issues, crashes)
+- Background jobs (fire and forget)
+- Multi-session workspaces (parallel tasks)
+- Crash forensics (debug failed sessions)
+- Audit/visibility (who's using what)
+- Manual socket control (advanced use)
+
+### Best Practices Checklist
+
+- ✅ Always check existing sessions before creating new ones
+- ✅ Use descriptive session names (claude-python-analysis, not session1)
+- ✅ Set PYTHON_BASIC_REPL=1 for Python REPLs
+- ✅ Wait for prompts after every send operation
+- ✅ Use session registry (-s flag) instead of manual socket management
+- ✅ Run cleanup-sessions.sh periodically
+- ✅ Check pane health before critical operations
+- ✅ Capture output early and often
+- ✅ Use multiline mode for code blocks (10x faster)
+- ✅ Rely on last_active timestamps for cleanup decisions
+
 ## Related Documentation
 
 - [Plugin Source](../../plugins/tmux/)
