@@ -78,6 +78,27 @@
       ],
       "strict": false,
       "skills": ["./"]
+    },
+    {
+      "name": "ultrathink",
+      "version": "1.0.0",
+      "source": "./plugins/ultrathink",
+      "description": "Invoke deep sequential thinking for complex problem-solving. Use when the user says 'use ultrathink', 'ultrathink', or when tackling problems that require careful step-by-step reasoning, planning, hypothesis generation, or multi-step analysis.",
+      "author": {
+        "name": "Alberto Leal"
+      },
+      "repository": "https://github.com/dashed/claude-marketplace/tree/master/plugins/ultrathink",
+      "license": "MIT",
+      "keywords": [
+        "thinking",
+        "reasoning",
+        "sequential",
+        "planning",
+        "analysis",
+        "problem-solving"
+      ],
+      "strict": false,
+      "skills": ["./"]
     }
   ]
 }
