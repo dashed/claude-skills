@@ -20,30 +20,27 @@ def extract_frontmatter(content: str) -> Tuple[str, int, int]:
     Returns:
         Tuple of (frontmatter_content, start_line, end_line)
     """
-    lines = content.split('\n')
+    lines = content.split("\n")
 
     # Check for opening ---
-    if not lines or lines[0].strip() != '---':
+    if not lines or lines[0].strip() != "---":
         raise ValueError("Missing opening '---' for frontmatter")
 
     # Find closing ---
     end_idx = None
     for i, line in enumerate(lines[1:], start=1):
-        if line.strip() == '---':
+        if line.strip() == "---":
             end_idx = i
             break
 
     if end_idx is None:
         raise ValueError("Missing closing '---' for frontmatter")
 
-    frontmatter = '\n'.join(lines[1:end_idx])
+    frontmatter = "\n".join(lines[1:end_idx])
     return frontmatter, 1, end_idx + 1
 
 
-def validate_skill_frontmatter(
-    skill_path: Path,
-    schema_path: Path
-) -> Tuple[bool, List[str]]:
+def validate_skill_frontmatter(skill_path: Path, schema_path: Path) -> Tuple[bool, List[str]]:
     """
     Validate YAML frontmatter in a SKILL.md file.
 
@@ -89,15 +86,15 @@ def validate_skill_frontmatter(
         # Additional checks
 
         # Check name format
-        name = frontmatter.get('name', '')
-        if not re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', name):
+        name = frontmatter.get("name", "")
+        if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", name):
             errors.append(
                 f"Invalid name format: '{name}'. "
                 "Must use lowercase letters, numbers, and hyphens only."
             )
 
         # Check description quality
-        description = frontmatter.get('description', '')
+        description = frontmatter.get("description", "")
         if len(description) < 20:
             errors.append(
                 f"Description too short ({len(description)} chars). "
@@ -106,7 +103,7 @@ def validate_skill_frontmatter(
             )
 
         # Check for "Use when" clause (best practice)
-        if 'use when' not in description.lower():
+        if "use when" not in description.lower():
             # This is a warning, not an error
             console.print(
                 f"[yellow]Warning:[/yellow] Description in {skill_path.name} "
@@ -123,46 +120,38 @@ def validate_skill_frontmatter(
         return False, errors
 
 
-def validate_all_skills(
-    plugins_dir: Path,
-    schema_path: Path
-) -> Dict[str, Any]:
+def validate_all_skills(plugins_dir: Path, schema_path: Path) -> Dict[str, Any]:
     """
     Validate all SKILL.md files in plugins directory.
 
     Returns:
         Dictionary with validation results
     """
-    results = {
-        'total': 0,
-        'passed': 0,
-        'failed': 0,
-        'details': []
-    }
+    results = {"total": 0, "passed": 0, "failed": 0, "details": []}
 
     # Find all SKILL.md files
-    skill_files = list(plugins_dir.glob('*/SKILL.md'))
+    skill_files = list(plugins_dir.glob("*/SKILL.md"))
 
     if not skill_files:
         console.print(f"[yellow]No SKILL.md files found in {plugins_dir}[/yellow]")
         return results
 
-    results['total'] = len(skill_files)
+    results["total"] = len(skill_files)
 
     for skill_file in sorted(skill_files):
         is_valid, errors = validate_skill_frontmatter(skill_file, schema_path)
 
         result = {
-            'file': str(skill_file.relative_to(plugins_dir.parent)),
-            'valid': is_valid,
-            'errors': errors
+            "file": str(skill_file.relative_to(plugins_dir.parent)),
+            "valid": is_valid,
+            "errors": errors,
         }
-        results['details'].append(result)
+        results["details"].append(result)
 
         if is_valid:
-            results['passed'] += 1
+            results["passed"] += 1
         else:
-            results['failed'] += 1
+            results["failed"] += 1
 
     return results
 
@@ -171,22 +160,22 @@ def print_results(results: Dict[str, Any]) -> None:
     """Print validation results in a nice table."""
 
     # Summary
-    console.print(f"\n[bold]YAML Frontmatter Validation Summary[/bold]")
+    console.print("\n[bold]YAML Frontmatter Validation Summary[/bold]")
     console.print(f"Total files: {results['total']}")
     console.print(f"[green]Passed: {results['passed']}[/green]")
     console.print(f"[red]Failed: {results['failed']}[/red]")
 
     # Details table
-    if results['details']:
+    if results["details"]:
         table = Table(title="Validation Details")
         table.add_column("File", style="cyan")
         table.add_column("Status", style="bold")
         table.add_column("Errors", style="red")
 
-        for detail in results['details']:
-            status = "[green]✓ PASS[/green]" if detail['valid'] else "[red]✗ FAIL[/red]"
-            errors = '\n'.join(detail['errors']) if detail['errors'] else ''
-            table.add_row(detail['file'], status, errors)
+        for detail in results["details"]:
+            status = "[green]✓ PASS[/green]" if detail["valid"] else "[red]✗ FAIL[/red]"
+            errors = "\n".join(detail["errors"]) if detail["errors"] else ""
+            table.add_row(detail["file"], status, errors)
 
         console.print(table)
 
@@ -195,25 +184,21 @@ def main() -> int:
     """Main entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Validate YAML frontmatter in SKILL.md files"
-    )
+    parser = argparse.ArgumentParser(description="Validate YAML frontmatter in SKILL.md files")
     parser.add_argument(
-        '--plugins-dir',
+        "--plugins-dir",
         type=Path,
-        default=Path('plugins'),
-        help='Directory containing plugin folders (default: plugins)'
+        default=Path("plugins"),
+        help="Directory containing plugin folders (default: plugins)",
     )
     parser.add_argument(
-        '--schema',
+        "--schema",
         type=Path,
-        default=Path('schemas/skill-frontmatter-schema.json'),
-        help='Path to JSON schema file'
+        default=Path("schemas/skill-frontmatter-schema.json"),
+        help="Path to JSON schema file",
     )
     parser.add_argument(
-        '--strict',
-        action='store_true',
-        help='Exit with error code if any validation fails'
+        "--strict", action="store_true", help="Exit with error code if any validation fails"
     )
 
     args = parser.parse_args()
@@ -234,11 +219,11 @@ def main() -> int:
     print_results(results)
 
     # Exit code
-    if args.strict and results['failed'] > 0:
+    if args.strict and results["failed"] > 0:
         return 1
 
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

@@ -77,7 +77,6 @@ run_test_contains() {
     # Run command and capture output
     set +e
     output=$("${cmd[@]}" 2>&1)
-    exit_code=$?
     set -e
 
     echo "Output:"
@@ -94,6 +93,7 @@ run_test_contains() {
 }
 
 # Cleanup function
+# shellcheck disable=SC2329  # Function is invoked via trap below
 cleanup() {
     echo -e "\n${BLUE}Cleaning up test resources...${NC}"
     tmux -S "$SOCKET1" kill-server 2>/dev/null || true

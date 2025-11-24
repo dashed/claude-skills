@@ -1,0 +1,12 @@
+# ShellCheck configuration for claude-marketplace
+# See https://www.shellcheck.net/wiki/ for more information on each code
+
+# SC1091: Not following: file was not specified as input
+# We source external library files (e.g., lib/registry.sh) that shellcheck
+# doesn't automatically follow. This is expected behavior.
+disable=SC1091
+
+# SC1090: ShellCheck can't follow non-constant source
+# Similar to SC1091, we have dynamic source patterns in test files
+# that are intentional and safe.
+disable=SC1090

@@ -1,4 +1,4 @@
-.PHONY: help sync validate validate-strict validate-yaml validate-json validate-structure clean test test-tmux-build test-tmux test-tmux-local test-tmux-shell test-session-registry test-session-registry-local test-registry test-create-session test-list-sessions test-cleanup-sessions test-session-integration lint format
+.PHONY: help sync validate validate-strict validate-yaml validate-json validate-structure clean test test-tmux-build test-tmux test-tmux-local test-tmux-shell test-session-registry test-session-registry-local test-registry test-create-session test-list-sessions test-cleanup-sessions test-session-integration lint lint-python lint-python-fix lint-shellcheck lint-shellcheck-strict lint-fix format format-check
 
 # Default target
 .DEFAULT_GOAL := help
@@ -65,11 +65,21 @@ validate-structure-strict: ## Validate file structure (strict mode)
 
 test: ## Run pytest tests
 	@echo "$(CYAN)Running tests...$(NC)"
-	@uv run pytest tests/ -v
+	@if find tests -name 'test_*.py' -type f | grep -q .; then \
+		uv run pytest tests/ -v; \
+	else \
+		echo "$(YELLOW)No Python tests found - skipping pytest$(NC)"; \
+		echo "$(YELLOW)Bash tests are located in tests/bash/ (run with make test-tmux)$(NC)"; \
+	fi
 
 test-cov: ## Run tests with coverage report
 	@echo "$(CYAN)Running tests with coverage...$(NC)"
-	@uv run pytest tests/ -v --cov=scripts --cov-report=html --cov-report=term
+	@if find tests -name 'test_*.py' -type f | grep -q .; then \
+		uv run pytest tests/ -v --cov=scripts --cov-report=html --cov-report=term; \
+	else \
+		echo "$(YELLOW)No Python tests found - skipping pytest with coverage$(NC)"; \
+		echo "$(YELLOW)Bash tests are located in tests/bash/ (run with make test-tmux)$(NC)"; \
+	fi
 
 # Docker configuration for tmux tests
 DOCKER_IMAGE := tmux-tests
@@ -148,13 +158,36 @@ test-tmux-shell: test-tmux-build ## Open interactive shell in tmux test containe
 	@echo "$(YELLOW)Run tests with: ./tests/bash/test-*.sh$(NC)"
 	@docker run --rm -it -v $(PWD):/workspace:ro -w /workspace $(DOCKER_IMAGE) /bin/bash
 
-lint: ## Run linting checks (ruff)
-	@echo "$(CYAN)Running linting checks...$(NC)"
+lint: ## Run all linting checks (ruff + shellcheck)
+	@echo "$(CYAN)Running all linting checks...$(NC)"
+	@$(MAKE) lint-python
+	@$(MAKE) lint-shellcheck
+
+lint-python: ## Run Python linting checks (ruff)
+	@echo "$(CYAN)Running Python linting checks...$(NC)"
 	@uv run ruff check scripts/ tests/
 
-lint-fix: ## Fix linting issues automatically
-	@echo "$(CYAN)Fixing linting issues...$(NC)"
+lint-python-fix: ## Fix Python linting issues automatically
+	@echo "$(CYAN)Fixing Python linting issues...$(NC)"
 	@uv run ruff check --fix scripts/ tests/
+
+lint-shellcheck: ## Run shellcheck on all bash scripts (report only)
+	@echo "$(CYAN)Running shellcheck on bash scripts...$(NC)"
+	@echo "$(YELLOW)Checking plugin scripts...$(NC)"
+	@find plugins/*/tools -name "*.sh" -type f -print0 | xargs -0 shellcheck --color=auto || true
+	@echo "$(YELLOW)Checking test scripts...$(NC)"
+	@find tests/bash -name "*.sh" -type f -print0 2>/dev/null | xargs -0 shellcheck --color=auto || true
+	@echo "$(GREEN)✓ Shellcheck completed$(NC)"
+
+lint-shellcheck-strict: ## Run shellcheck on all bash scripts (fail on issues)
+	@echo "$(CYAN)Running shellcheck on bash scripts (strict mode)...$(NC)"
+	@echo "$(YELLOW)Checking plugin scripts...$(NC)"
+	@find plugins/*/tools -name "*.sh" -type f -print0 | xargs -0 shellcheck --color=auto
+	@echo "$(YELLOW)Checking test scripts...$(NC)"
+	@find tests/bash -name "*.sh" -type f -print0 2>/dev/null | xargs -0 shellcheck --color=auto
+	@echo "$(GREEN)✓ All shellcheck checks passed$(NC)"
+
+lint-fix: lint-python-fix ## Fix linting issues automatically (Python only)
 
 format: ## Format code with black
 	@echo "$(CYAN)Formatting code with black...$(NC)"

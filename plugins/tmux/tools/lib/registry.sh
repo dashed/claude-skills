@@ -171,6 +171,7 @@ registry_add_session() {
   )
 
   # Add pid if provided
+  # shellcheck disable=SC2016  # jq expressions use $var syntax, not bash variables
   if [[ -n "$pid" ]]; then
     jq_args+=(--argjson pid "$pid")
     local jq_expr='.sessions[$name] = {socket: $socket, target: $target, type: $type, created_at: $created, last_active: $last, pid: $pid}'

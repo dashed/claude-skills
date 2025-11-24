@@ -14,10 +14,7 @@ console = Console()
 
 
 def run_validator(
-    script: str,
-    description: str,
-    args: list[str] = None,
-    is_shell_command: bool = False
+    script: str, description: str, args: list[str] = None, is_shell_command: bool = False
 ) -> Dict[str, Any]:
     """
     Run a validation script and capture results.
@@ -37,7 +34,7 @@ def run_validator(
             # Expand glob patterns in args
             expanded_args = []
             for arg in args:
-                if '*' in arg or '?' in arg:
+                if "*" in arg or "?" in arg:
                     # Expand glob pattern
                     matches = glob.glob(arg)
                     if matches:
@@ -53,19 +50,15 @@ def run_validator(
         if args:
             cmd.extend(args)
 
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True
-    )
+    result = subprocess.run(cmd, capture_output=True, text=True)
 
     return {
-        'description': description,
-        'script': script,
-        'returncode': result.returncode,
-        'stdout': result.stdout,
-        'stderr': result.stderr,
-        'passed': result.returncode == 0
+        "description": description,
+        "script": script,
+        "returncode": result.returncode,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "passed": result.returncode == 0,
     }
 
 
@@ -73,41 +66,35 @@ def main() -> int:
     """Main entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Run all validation checks"
+    parser = argparse.ArgumentParser(description="Run all validation checks")
+    parser.add_argument(
+        "--strict", action="store_true", help="Exit with error code if any validation fails"
     )
     parser.add_argument(
-        '--strict',
-        action='store_true',
-        help='Exit with error code if any validation fails'
-    )
-    parser.add_argument(
-        '--verbose',
-        action='store_true',
-        help='Show full output from all validators'
+        "--verbose", action="store_true", help="Show full output from all validators"
     )
 
     args = parser.parse_args()
 
     validators_dir = Path(__file__).parent
-    strict_flag = ['--strict'] if args.strict else []
+    strict_flag = ["--strict"] if args.strict else []
 
     # Define validators to run
     validators = [
         {
-            'script': str(validators_dir / 'validate_structure.py'),
-            'description': 'File Structure Validation',
-            'args': strict_flag
+            "script": str(validators_dir / "validate_structure.py"),
+            "description": "File Structure Validation",
+            "args": strict_flag,
         },
         {
-            'script': str(validators_dir / 'validate_json.py'),
-            'description': 'JSON Manifest Validation',
-            'args': ['--all'] + strict_flag
+            "script": str(validators_dir / "validate_json.py"),
+            "description": "JSON Manifest Validation",
+            "args": ["--all"] + strict_flag,
         },
         {
-            'script': str(validators_dir / 'validate_yaml.py'),
-            'description': 'YAML Frontmatter Validation',
-            'args': strict_flag
+            "script": str(validators_dir / "validate_yaml.py"),
+            "description": "YAML Frontmatter Validation",
+            "args": strict_flag,
         },
     ]
 
@@ -115,68 +102,67 @@ def main() -> int:
     # with YAML frontmatter, not pure YAML. We use validate_yaml.py instead
     # which properly extracts and validates the frontmatter section.
 
-    console.print(Panel.fit(
-        "[bold cyan]Claude Marketplace - Static Validation Suite[/bold cyan]\n"
-        f"Running {len(validators)} validation checks...",
-        border_style="cyan"
-    ))
+    console.print(
+        Panel.fit(
+            "[bold cyan]Claude Marketplace - Static Validation Suite[/bold cyan]\n"
+            f"Running {len(validators)} validation checks...",
+            border_style="cyan",
+        )
+    )
 
     results = []
 
     # Run validators with progress indicator
     with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console
+        SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console
     ) as progress:
 
         for validator in validators:
-            task = progress.add_task(
-                f"[cyan]{validator['description']}...",
-                total=None
-            )
+            task = progress.add_task(f"[cyan]{validator['description']}...", total=None)
 
             result = run_validator(
-                validator['script'],
-                validator['description'],
-                validator.get('args'),
-                validator.get('is_shell_command', False)
+                validator["script"],
+                validator["description"],
+                validator.get("args"),
+                validator.get("is_shell_command", False),
             )
             results.append(result)
 
             progress.update(task, completed=True)
 
             # Show result immediately
-            status = "[green]✓ PASS[/green]" if result['passed'] else "[red]✗ FAIL[/red]"
+            status = "[green]✓ PASS[/green]" if result["passed"] else "[red]✗ FAIL[/red]"
             console.print(f"{status} {validator['description']}")
 
     # Print detailed results
-    console.print("\n" + "="*70 + "\n")
+    console.print("\n" + "=" * 70 + "\n")
 
     total_passed = 0
     total_failed = 0
 
     for result in results:
-        if result['passed']:
+        if result["passed"]:
             total_passed += 1
         else:
             total_failed += 1
 
-        if args.verbose or not result['passed']:
+        if args.verbose or not result["passed"]:
             console.print(f"\n[bold]{result['description']}[/bold]")
-            console.print(result['stdout'])
-            if result['stderr']:
+            console.print(result["stdout"])
+            if result["stderr"]:
                 console.print(f"[red]Stderr:[/red]\n{result['stderr']}")
 
     # Summary
-    console.print("\n" + "="*70)
-    console.print(Panel.fit(
-        f"[bold]Validation Summary[/bold]\n\n"
-        f"Total checks: {len(results)}\n"
-        f"[green]Passed: {total_passed}[/green]\n"
-        f"[red]Failed: {total_failed}[/red]",
-        border_style="green" if total_failed == 0 else "red"
-    ))
+    console.print("\n" + "=" * 70)
+    console.print(
+        Panel.fit(
+            f"[bold]Validation Summary[/bold]\n\n"
+            f"Total checks: {len(results)}\n"
+            f"[green]Passed: {total_passed}[/green]\n"
+            f"[red]Failed: {total_failed}[/red]",
+            border_style="green" if total_failed == 0 else "red",
+        )
+    )
 
     if total_failed == 0:
         console.print("[green bold]✓ All validations passed![/green bold]")
@@ -187,5 +173,5 @@ def main() -> int:
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

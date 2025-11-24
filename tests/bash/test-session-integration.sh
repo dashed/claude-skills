@@ -28,6 +28,7 @@ REGISTRY_LIB="$TOOLS_DIR/lib/registry.sh"
 
 # Test-specific socket directory (isolated from system)
 export CLAUDE_TMUX_SOCKET_DIR="${TMPDIR:-/tmp}/tmux-test-integration-$$"
+# shellcheck disable=SC2034  # Used by sourced registry.sh library
 REGISTRY_FILE="$CLAUDE_TMUX_SOCKET_DIR/.sessions.json"
 
 # Test counters
@@ -36,6 +37,7 @@ TESTS_PASSED=0
 TESTS_FAILED=0
 
 # Cleanup function
+# shellcheck disable=SC2329  # Function is invoked via trap below
 cleanup() {
     # Kill any tmux sessions we created
     shopt -s nullglob

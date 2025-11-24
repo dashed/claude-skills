@@ -111,6 +111,7 @@ run_test_contains() {
 }
 
 # Cleanup function
+# shellcheck disable=SC2329  # Function is invoked via trap below
 cleanup() {
     echo -e "\n${BLUE}Cleaning up test resources...${NC}"
     tmux -S "$SOCKET" kill-server 2>/dev/null || true
@@ -327,7 +328,6 @@ sleep 0.5
 # Run with verbose flag and check output contains verbose messages
 set +e
 verbose_output=$("$TOOL_PATH" -S "$SOCKET" -t verbose-test:0.0 -c "echo test" -v 2>&1)
-verbose_exit=$?
 set -e
 
 TESTS_TOTAL=$((TESTS_TOTAL + 1))

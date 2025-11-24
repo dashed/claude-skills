@@ -38,7 +38,7 @@ class StructureValidator:
         is_valid = True
 
         # Check plugin name format
-        if not re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', plugin_name):
+        if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", plugin_name):
             self.errors.append(
                 f"{plugin_name}: Invalid plugin name. "
                 "Must use lowercase letters, numbers, and hyphens only."
@@ -46,11 +46,11 @@ class StructureValidator:
             is_valid = False
 
         # Check for .claude-plugin directory (for plugins with plugin.json)
-        claude_plugin_dir = plugin_dir / '.claude-plugin'
-        plugin_json = claude_plugin_dir / 'plugin.json'
+        claude_plugin_dir = plugin_dir / ".claude-plugin"
+        plugin_json = claude_plugin_dir / "plugin.json"
 
         has_plugin_json = plugin_json.exists()
-        has_skill_md = (plugin_dir / 'SKILL.md').exists()
+        has_skill_md = (plugin_dir / "SKILL.md").exists()
 
         # Either plugin.json or SKILL.md should exist (or both)
         if not has_plugin_json and not has_skill_md:
@@ -60,7 +60,7 @@ class StructureValidator:
             )
 
         # Check that component directories are at plugin root, not in .claude-plugin
-        component_dirs = ['commands', 'agents', 'skills', 'hooks', 'scripts']
+        component_dirs = ["commands", "agents", "skills", "hooks", "scripts"]
 
         for comp_dir in component_dirs:
             wrong_location = claude_plugin_dir / comp_dir
@@ -89,7 +89,7 @@ class StructureValidator:
         is_valid = True
 
         # Check skill name format
-        if not re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', skill_name):
+        if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", skill_name):
             self.errors.append(
                 f"{skill_name}: Invalid skill name. "
                 "Must use lowercase letters, numbers, and hyphens only."
@@ -97,14 +97,14 @@ class StructureValidator:
             is_valid = False
 
         # Check for SKILL.md (required)
-        skill_md = skill_dir / 'SKILL.md'
+        skill_md = skill_dir / "SKILL.md"
         if not skill_md.exists():
             self.errors.append(f"{skill_name}: Missing required SKILL.md file")
             is_valid = False
 
         # Check for common mistakes
         # 1. SKILL.md should not be nested
-        nested_skill = skill_dir / 'skills' / 'SKILL.md'
+        nested_skill = skill_dir / "skills" / "SKILL.md"
         if nested_skill.exists():
             self.errors.append(
                 f"{skill_name}: SKILL.md should be at root, not in skills/ subdirectory"
@@ -113,7 +113,7 @@ class StructureValidator:
 
         # 2. Check for uppercase SKILL names (common mistake)
         for item in skill_dir.iterdir():
-            if item.is_file() and item.name.lower() == 'skill.md' and item.name != 'SKILL.md':
+            if item.is_file() and item.name.lower() == "skill.md" and item.name != "SKILL.md":
                 self.errors.append(
                     f"{skill_name}: Found '{item.name}' but should be 'SKILL.md' (uppercase)"
                 )
@@ -126,23 +126,20 @@ class StructureValidator:
         is_valid = True
 
         # Check for .claude-plugin/marketplace.json
-        marketplace_json = self.base_dir / '.claude-plugin' / 'marketplace.json'
+        marketplace_json = self.base_dir / ".claude-plugin" / "marketplace.json"
         if not marketplace_json.exists():
-            self.errors.append(
-                "Missing .claude-plugin/marketplace.json file"
-            )
+            self.errors.append("Missing .claude-plugin/marketplace.json file")
             is_valid = False
 
         # Check for plugins directory
-        plugins_dir = self.base_dir / 'plugins'
+        plugins_dir = self.base_dir / "plugins"
         if not plugins_dir.exists():
             self.warnings.append(
-                "No 'plugins/' directory found. "
-                "This is okay if plugins are sourced externally."
+                "No 'plugins/' directory found. " "This is okay if plugins are sourced externally."
             )
 
         # Check for recommended files
-        recommended_files = ['README.md', 'CHANGELOG.md', '.gitignore']
+        recommended_files = ["README.md", "CHANGELOG.md", ".gitignore"]
         for filename in recommended_files:
             if not (self.base_dir / filename).exists():
                 self.warnings.append(f"Recommended file missing: {filename}")
@@ -152,24 +149,24 @@ class StructureValidator:
     def validate_all(self) -> Dict[str, Any]:
         """Run all structure validations."""
         results = {
-            'marketplace': {'valid': True, 'errors': [], 'warnings': []},
-            'plugins': [],
-            'skills': [],
-            'summary': {'total_errors': 0, 'total_warnings': 0}
+            "marketplace": {"valid": True, "errors": [], "warnings": []},
+            "plugins": [],
+            "skills": [],
+            "summary": {"total_errors": 0, "total_warnings": 0},
         }
 
         # Validate marketplace structure
         self.errors = []
         self.warnings = []
         is_valid = self.validate_marketplace_structure()
-        results['marketplace'] = {
-            'valid': is_valid,
-            'errors': self.errors.copy(),
-            'warnings': self.warnings.copy()
+        results["marketplace"] = {
+            "valid": is_valid,
+            "errors": self.errors.copy(),
+            "warnings": self.warnings.copy(),
         }
 
         # Validate plugins
-        plugins_dir = self.base_dir / 'plugins'
+        plugins_dir = self.base_dir / "plugins"
         if plugins_dir.exists():
             for plugin_dir in sorted(plugins_dir.iterdir()):
                 if not plugin_dir.is_dir():
@@ -180,25 +177,27 @@ class StructureValidator:
                 is_valid = self.validate_plugin_structure(plugin_dir)
 
                 # Also validate as skill if SKILL.md exists
-                if (plugin_dir / 'SKILL.md').exists():
+                if (plugin_dir / "SKILL.md").exists():
                     skill_valid = self.validate_skill_structure(plugin_dir)
                     is_valid = is_valid and skill_valid
 
-                results['plugins'].append({
-                    'name': plugin_dir.name,
-                    'valid': is_valid,
-                    'errors': self.errors.copy(),
-                    'warnings': self.warnings.copy()
-                })
+                results["plugins"].append(
+                    {
+                        "name": plugin_dir.name,
+                        "valid": is_valid,
+                        "errors": self.errors.copy(),
+                        "warnings": self.warnings.copy(),
+                    }
+                )
 
         # Calculate summary
-        for result_list in [results['plugins']]:
+        for result_list in [results["plugins"]]:
             for result in result_list:
-                results['summary']['total_errors'] += len(result['errors'])
-                results['summary']['total_warnings'] += len(result['warnings'])
+                results["summary"]["total_errors"] += len(result["errors"])
+                results["summary"]["total_warnings"] += len(result["warnings"])
 
-        results['summary']['total_errors'] += len(results['marketplace']['errors'])
-        results['summary']['total_warnings'] += len(results['marketplace']['warnings'])
+        results["summary"]["total_errors"] += len(results["marketplace"]["errors"])
+        results["summary"]["total_warnings"] += len(results["marketplace"]["warnings"])
 
         return results
 
@@ -209,47 +208,43 @@ def print_results(results: Dict[str, Any]) -> None:
     console.print("\n[bold]File Structure Validation[/bold]")
 
     # Marketplace results
-    marketplace = results['marketplace']
-    if marketplace['errors']:
+    marketplace = results["marketplace"]
+    if marketplace["errors"]:
         console.print("\n[red]✗ Marketplace structure errors:[/red]")
-        for error in marketplace['errors']:
+        for error in marketplace["errors"]:
             console.print(f"  • {error}")
 
-    if marketplace['warnings']:
+    if marketplace["warnings"]:
         console.print("\n[yellow]⚠ Marketplace structure warnings:[/yellow]")
-        for warning in marketplace['warnings']:
+        for warning in marketplace["warnings"]:
             console.print(f"  • {warning}")
 
     # Plugin results table
-    if results['plugins']:
+    if results["plugins"]:
         table = Table(title="\nPlugin Structure Validation")
         table.add_column("Plugin", style="cyan")
         table.add_column("Status", style="bold")
         table.add_column("Issues", style="yellow")
 
-        for plugin in results['plugins']:
-            status = "[green]✓ PASS[/green]" if plugin['valid'] else "[red]✗ FAIL[/red]"
+        for plugin in results["plugins"]:
+            status = "[green]✓ PASS[/green]" if plugin["valid"] else "[red]✗ FAIL[/red]"
             issues = []
-            if plugin['errors']:
-                issues.extend([f"[red]✗ {e}[/red]" for e in plugin['errors']])
-            if plugin['warnings']:
-                issues.extend([f"[yellow]⚠ {w}[/yellow]" for w in plugin['warnings']])
+            if plugin["errors"]:
+                issues.extend([f"[red]✗ {e}[/red]" for e in plugin["errors"]])
+            if plugin["warnings"]:
+                issues.extend([f"[yellow]⚠ {w}[/yellow]" for w in plugin["warnings"]])
 
-            table.add_row(
-                plugin['name'],
-                status,
-                '\n'.join(issues) if issues else ''
-            )
+            table.add_row(plugin["name"], status, "\n".join(issues) if issues else "")
 
         console.print(table)
 
     # Summary
-    summary = results['summary']
+    summary = results["summary"]
     console.print("\n[bold]Summary:[/bold]")
     console.print(f"Total errors: [red]{summary['total_errors']}[/red]")
     console.print(f"Total warnings: [yellow]{summary['total_warnings']}[/yellow]")
 
-    if summary['total_errors'] == 0:
+    if summary["total_errors"] == 0:
         console.print("[green]✓ All structure validations passed![/green]")
 
 
@@ -257,19 +252,17 @@ def main() -> int:
     """Main entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Validate file structure and naming conventions"
-    )
+    parser = argparse.ArgumentParser(description="Validate file structure and naming conventions")
     parser.add_argument(
-        '--base-dir',
+        "--base-dir",
         type=Path,
-        default=Path('.'),
-        help='Base directory of the marketplace (default: current directory)'
+        default=Path("."),
+        help="Base directory of the marketplace (default: current directory)",
     )
     parser.add_argument(
-        '--strict',
-        action='store_true',
-        help='Exit with error code if any validation fails (including warnings)'
+        "--strict",
+        action="store_true",
+        help="Exit with error code if any validation fails (including warnings)",
     )
 
     args = parser.parse_args()
@@ -280,14 +273,14 @@ def main() -> int:
     print_results(results)
 
     # Exit code
-    if results['summary']['total_errors'] > 0:
+    if results["summary"]["total_errors"] > 0:
         return 1
 
-    if args.strict and results['summary']['total_warnings'] > 0:
+    if args.strict and results["summary"]["total_warnings"] > 0:
         return 1
 
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
