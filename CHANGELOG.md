@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- skill-reviewer skill: Ownership metadata pattern with Version section (version, date, maintainer, changelog link)
+- skill-reviewer skill: Testing/verification guidance pattern with Quick Verification section
+- skill-reviewer skill: Comprehensive references/examples.md with 4 sample reviews (1,460 words)
+- skill-reviewer skill: Sample reviews demonstrating simple, complex, quick audit, and before/after improvement patterns
+
+### Changed
+- skill-reviewer skill: Enhanced SKILL.md with ownership and testing sections (718 → 888 words, 59% of budget)
+- skill-reviewer skill: Restructured Examples section to reference both examples.md and quality-checklist.md
+- skill-reviewer skill: Detailed Guidance section now includes Review Examples link
+
 ## [0.4.0] - 2025-11-23
 
 ### Added
