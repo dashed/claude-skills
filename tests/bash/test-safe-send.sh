@@ -518,6 +518,69 @@ fi
 clean_registry
 
 # ============================================================================
+# TEST SECTION 10: Multiline Mode Tests
+# ============================================================================
+
+echo -e "\n${BLUE}═══════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}TEST SECTION 10: Multiline Mode${NC}"
+echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+
+# Kill existing test-session and create fresh Python REPL for multiline tests
+tmux -S "$SOCKET" kill-session -t test-session 2>/dev/null || true
+tmux -S "$SOCKET" new-session -d -s test-session "PYTHON_BASIC_REPL=1 python3 -q"
+sleep 1  # Wait for Python to start
+
+# Test 30: Basic multiline send and verify
+run_test "Multiline mode: basic function definition" 0 \
+    "$TOOL_PATH" -S "$SOCKET" -t test-session:0.0 -m -c "def test_func():
+    return 'hello from multiline'" -w ">>>" -T 10
+
+# Call the function to verify it was defined
+"$TOOL_PATH" -S "$SOCKET" -t test-session:0.0 -c "print(test_func())" -w ">>>" -T 10
+sleep 0.5
+run_test_contains "Multiline mode: verify function callable" "hello from multiline" \
+    echo "Checking pane for function output..."
+
+# Test 31: Auto-append blank line
+# Send multiline without trailing newlines - should still execute
+run_test "Multiline mode: auto-append blank line" 0 \
+    "$TOOL_PATH" -S "$SOCKET" -t test-session:0.0 -m -c "def auto_blank():
+    return 42" -w ">>>" -T 10
+
+# Call the function to verify it was defined (proves blank line was auto-appended)
+"$TOOL_PATH" -S "$SOCKET" -t test-session:0.0 -c "print(auto_blank())" -w ">>>" -T 10
+sleep 0.5
+run_test_contains "Multiline mode: verify auto-blank execution" "42" \
+    echo "Checking pane for auto-blank output..."
+
+# Test 32: Indentation preservation
+# Test with nested blocks and mixed indentation levels
+run_test "Multiline mode: indentation preservation" 0 \
+    "$TOOL_PATH" -S "$SOCKET" -t test-session:0.0 -m -c "def nested_func(n):
+    if n > 0:
+        for i in range(n):
+            if i % 2 == 0:
+                pass
+        return 'done'
+    return 'zero'" -w ">>>" -T 10
+
+# Call the function to verify indentation was preserved
+"$TOOL_PATH" -S "$SOCKET" -t test-session:0.0 -c "print(nested_func(3))" -w ">>>" -T 10
+sleep 0.5
+run_test_contains "Multiline mode: verify nested function" "done" \
+    echo "Checking pane for nested function output..."
+
+# Test 33: Wait pattern with multiline
+# Verify -w flag works with -m flag
+run_test "Multiline mode: wait pattern works" 0 \
+    "$TOOL_PATH" -S "$SOCKET" -t test-session:0.0 -m -c "def wait_test():
+    return 'waited'" -w ">>>" -T 10
+
+# Test 34: Mutual exclusion error (-m and -l together)
+run_test "Multiline mode: -m and -l mutual exclusion" 4 \
+    "$TOOL_PATH" -S "$SOCKET" -t test-session:0.0 -m -l -c "test"
+
+# ============================================================================
 # Summary
 # ============================================================================
 

@@ -77,6 +77,7 @@ Options:
   -S, --socket    tmux socket path (for custom sockets via -S)
   -L, --socket-name  tmux socket name (for named sockets via -L)
   -l, --literal   use literal mode (send-keys -l, no Enter)
+  -m, --multiline use multiline mode (paste-buffer for code blocks)
   -w, --wait      wait for this pattern after sending
   -T, --timeout   timeout in seconds (default: 30)
   -r, --retries   max retry attempts (default: 3)
@@ -96,13 +97,25 @@ Modes:
     Sends command and presses Enter (executes in shell/REPL)
     Example: safe-send.sh -c "print('hello')"
 
+  Multiline mode (-m):
+    Sends multiline code blocks via paste-buffer
+    Auto-appends blank line for REPL execution
+    Example: safe-send.sh -m -c "def foo():
+        return 42"
+    (Incompatible with --literal)
+
   Literal mode (-l):
     Sends exact characters without Enter (typing text)
     Example: safe-send.sh -l -c "some text"
+    (Incompatible with --multiline)
 
 Examples:
   # Send Python command and wait for prompt
   safe-send.sh -t session:0.0 -c "2+2" -w ">>>" -T 10
+
+  # Send multiline Python function
+  safe-send.sh -t session:0.0 -m -c "def foo():
+      return 42" -w ">>>"
 
   # Send gdb command
   safe-send.sh -t debug:0.0 -c "break main" -w "(gdb)"
@@ -131,6 +144,7 @@ session_name=""    # session name for registry lookup
 socket=""          # tmux socket path (empty = use default tmux socket)
 socket_name=""     # tmux socket name (for -L option)
 literal_mode=false # use send-keys -l (literal mode)
+multiline_mode=false # use paste-buffer for multiline code blocks
 wait_pattern=""    # pattern to wait for after sending (optional)
 timeout=30         # timeout in seconds for prompt waiting
 max_retries=3      # maximum number of send attempts
@@ -149,6 +163,7 @@ while [[ $# -gt 0 ]]; do
     -S|--socket)       socket="${2-}"; shift 2 ;;
     -L|--socket-name)  socket_name="${2-}"; shift 2 ;;
     -l|--literal)      literal_mode=true; shift ;;
+    -m|--multiline)    multiline_mode=true; shift ;;
     -w|--wait)         wait_pattern="${2-}"; shift 2 ;;
     -T|--timeout)      timeout="${2-}"; shift 2 ;;
     -r|--retries)      max_retries="${2-}"; shift 2 ;;
@@ -259,6 +274,12 @@ if [[ -n "$socket" && -n "$socket_name" ]]; then
   exit 4
 fi
 
+# Check that multiline and literal modes are not both specified
+if [[ "$multiline_mode" == true && "$literal_mode" == true ]]; then
+  echo "Error: --multiline and --literal are mutually exclusive" >&2
+  exit 4
+fi
+
 # Check that tmux is installed and available in PATH
 if ! command -v tmux >/dev/null 2>&1; then
   echo "tmux not found in PATH" >&2
@@ -342,44 +363,88 @@ send_success=false
 for attempt in $(seq 1 "$max_retries"); do
   verbose_log "Attempt $attempt/$max_retries: Sending command to $target"
 
-  # Construct send-keys command
-  send_cmd=("${tmux_cmd[@]}" send-keys -t "$target")
+  if [[ "$multiline_mode" == true ]]; then
+    # ============================================================
+    # Multiline mode: use paste-buffer
+    # ============================================================
+    verbose_log "Using multiline mode (paste-buffer)"
 
-  if [[ "$literal_mode" == true ]]; then
+    # Auto-append blank line if not present (for Python REPL execution)
+    processed_command="$command"
+    if [[ ! "$processed_command" =~ $'\n\n'$ ]]; then
+      processed_command="${processed_command}"$'\n\n'
+      verbose_log "Auto-appended blank line for REPL execution"
+    fi
+
+    # Set buffer
+    if ! "${tmux_cmd[@]}" set-buffer "$processed_command" 2>/dev/null; then
+      verbose_log "set-buffer failed on attempt $attempt"
+      # Continue to retry logic below (don't break early)
+    else
+      # Paste buffer to target pane
+      if "${tmux_cmd[@]}" paste-buffer -t "$target" 2>/dev/null; then
+        verbose_log "paste-buffer successful on attempt $attempt"
+        send_success=true
+        break
+      else
+        verbose_log "paste-buffer failed on attempt $attempt"
+        # Continue to retry logic below
+      fi
+    fi
+
+  elif [[ "$literal_mode" == true ]]; then
+    # ============================================================
     # Literal mode: send exact characters, no Enter
+    # ============================================================
     verbose_log "Using literal mode (-l)"
+    send_cmd=("${tmux_cmd[@]}" send-keys -t "$target")
     send_cmd+=(-l "$command")
+
+    # Attempt to send the command
+    if "${send_cmd[@]}" 2>/dev/null; then
+      verbose_log "Send successful on attempt $attempt"
+      send_success=true
+      break
+    else
+      verbose_log "Send failed on attempt $attempt"
+    fi
+
   else
+    # ============================================================
     # Normal mode: send command and press Enter
+    # ============================================================
     verbose_log "Using normal mode (with Enter)"
+    send_cmd=("${tmux_cmd[@]}" send-keys -t "$target")
     send_cmd+=("$command" Enter)
+
+    # Attempt to send the command
+    if "${send_cmd[@]}" 2>/dev/null; then
+      verbose_log "Send successful on attempt $attempt"
+      send_success=true
+      break
+    else
+      verbose_log "Send failed on attempt $attempt"
+    fi
   fi
 
-  # Attempt to send the command
-  if "${send_cmd[@]}" 2>/dev/null; then
-    verbose_log "Send successful on attempt $attempt"
-    send_success=true
-    break
-  else
-    send_exit=$?
-    verbose_log "Send failed on attempt $attempt (exit code: $send_exit)"
-
-    # If this is not the last attempt, wait before retrying
-    if [[ $attempt -lt $max_retries ]]; then
-      # Calculate exponential backoff: base_interval * (2 ^ (attempt - 1))
-      # For base_interval=0.5: 0.5s, 1s, 2s, 4s, ...
-      # Using bc for floating-point arithmetic
-      if command -v bc >/dev/null 2>&1; then
-        sleep_duration=$(echo "$base_interval * (2 ^ ($attempt - 1))" | bc -l)
-      else
-        # Fallback if bc is not available: use integer arithmetic
-        multiplier=$((2 ** (attempt - 1)))
-        sleep_duration=$(echo "$base_interval * $multiplier" | awk '{print $1 * $3}')
-      fi
-
-      verbose_log "Waiting ${sleep_duration}s before retry..."
-      sleep "$sleep_duration"
+  # ============================================================
+  # Retry logic with exponential backoff
+  # ============================================================
+  # If this is not the last attempt, wait before retrying
+  if [[ $attempt -lt $max_retries ]]; then
+    # Calculate exponential backoff: base_interval * (2 ^ (attempt - 1))
+    # For base_interval=0.5: 0.5s, 1s, 2s, 4s, ...
+    # Using bc for floating-point arithmetic
+    if command -v bc >/dev/null 2>&1; then
+      sleep_duration=$(echo "$base_interval * (2 ^ ($attempt - 1))" | bc -l)
+    else
+      # Fallback if bc is not available: use integer arithmetic
+      multiplier=$((2 ** (attempt - 1)))
+      sleep_duration=$(echo "$base_interval * $multiplier" | awk '{print $1 * $3}')
     fi
+
+    verbose_log "Waiting ${sleep_duration}s before retry..."
+    sleep "$sleep_duration"
   fi
 done
 

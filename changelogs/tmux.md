@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2025-11-23
+
+### Added
+- Multiline mode for safe-send.sh using --multiline/-m flag for efficient code block sending
+- paste-buffer mechanism for sending multiline code in single operation (~10x faster than line-by-line)
+- Auto-append blank line for Python REPL execution in multiline mode
+- Comprehensive test suite for multiline functionality (8 new tests: tests 30-37 in test-safe-send.sh)
+- Test coverage for basic multiline send, auto-blank-line appending, indentation preservation, wait pattern compatibility, and mutual exclusion validation
+- Documentation and examples for multiline code blocks in SKILL.md (fibonacci function, Calculator class examples)
+
+### Changed
+- safe-send.sh now uses paste-buffer for multiline input when -m flag is specified
+- Updated help text with multiline mode documentation, usage examples, and compatibility notes
+- Enhanced modes section with multiline mode benefits (~10x speedup, perfect indentation, auto-execution)
+
 ## [1.2.3] - 2025-11-23
 
 ### Changed

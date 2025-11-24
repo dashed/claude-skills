@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2025-11-23
+
+### Added
+- tmux skill: Multiline support for safe-send.sh (~10x speedup for code blocks)
+- tmux skill: 8 new tests for multiline functionality (tests 30-37)
+
+### Changed
+- tmux skill: Enhanced safe-send.sh with --multiline flag for efficient code block sending via paste-buffer
+- tmux skill: Updated SKILL.md with multiline mode documentation and examples
+- tmux skill: Version bumped to 1.3.0
+
 ## [0.6.2] - 2025-11-23
 
 ### Changed
@@ -170,7 +181,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Marketplace metadata and owner information
 - Plugin entry with `skills` field for proper skill loading
 
-[Unreleased]: https://github.com/dashed/claude-marketplace/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/dashed/claude-marketplace/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/dashed/claude-marketplace/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/dashed/claude-marketplace/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/dashed/claude-marketplace/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/dashed/claude-marketplace/compare/v0.5.0...v0.6.0

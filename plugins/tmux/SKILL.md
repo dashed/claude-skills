@@ -301,6 +301,7 @@ Total: 2 | Alive: 1 | Dead: 1
 - `-S`/`--socket` tmux socket path (for custom sockets via -S)
 - `-L`/`--socket-name` tmux socket name (for named sockets via -L)
 - `-l`/`--literal` use literal mode (send text without executing)
+- `-m`/`--multiline` use multiline mode (paste-buffer for code blocks)
 - `-w`/`--wait` wait for this pattern after sending
 - `-T`/`--timeout` timeout in seconds (default: 30)
 - `-r`/`--retries` max retry attempts (default: 3)
@@ -316,7 +317,8 @@ Total: 2 | Alive: 1 | Dead: 1
 
 **Modes:**
 - **Normal mode (default):** Sends command and presses Enter (executes in shell/REPL)
-- **Literal mode (-l):** Sends exact characters without Enter (typing text)
+- **Multiline mode (-m):** Sends multiline code blocks via paste-buffer (~10x faster than line-by-line). Auto-appends blank line for Python REPL execution. Incompatible with `-l`.
+- **Literal mode (-l):** Sends exact characters without Enter (typing text). Incompatible with `-m`.
 
 **Use cases:**
 - Send commands to Python REPL with automatic retry and prompt waiting
@@ -343,11 +345,33 @@ Total: 2 | Alive: 1 | Dead: 1
 # Send control sequence
 ./tools/safe-send.sh -s claude-python -c "C-c"
 
+# Send multiline Python function (fast, preserves indentation)
+./tools/safe-send.sh -s claude-python -m -c "def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)" -w ">>>" -T 10
+
+# Send multiline class definition
+./tools/safe-send.sh -s claude-python -m -c "class Calculator:
+    def __init__(self):
+        self.result = 0
+
+    def add(self, x):
+        self.result += x
+        return self" -w ">>>"
+
 # Explicit socket/target (backward compatible)
 SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets
 SOCKET="$SOCKET_DIR/claude.sock"
 ./tools/safe-send.sh -S "$SOCKET" -t "$SESSION":0.0 -c "print('hello')" -w ">>>"
 ```
+
+**Multiline mode benefits:**
+- **~10x faster** than sending line-by-line (single operation vs N separate calls)
+- **Preserves indentation** perfectly (important for Python)
+- **Auto-executes** in Python REPL (blank line appended automatically)
+- **Cleaner logs** (one operation instead of many)
+- **Best for:** Function definitions, class definitions, complex code blocks
 
 ## Helper: wait-for-text.sh
 
