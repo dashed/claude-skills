@@ -49,25 +49,31 @@ When releasing a new version, follow these steps:
    - Update `metadata.version` field to new version number
    - Example: `"version": "0.2.0"`
 
-4. **Run validation**
+4. **Update README.md**
+   - Update version in the "Version" section to match marketplace version
+   - Add new skills to "Available Skills" table if any were added
+   - Ensure skill descriptions and links are accurate
+
+5. **Run validation**
    ```bash
    make validate
    ```
    Ensure all checks pass before proceeding.
 
-5. **Create git commit**
+6. **Create git commit**
    ```bash
-   git add CHANGELOG.md changelogs/ .claude-plugin/marketplace.json
+   git add CHANGELOG.md changelogs/ .claude-plugin/marketplace.json README.md
    git commit -m "chore: bump version to vX.Y.Z"
    ```
+   Note: Add README.md to git add if it was updated in step 4
 
-6. **Create git tag**
+7. **Create git tag**
    ```bash
    git tag -a vX.Y.Z -m "Release vX.Y.Z"
    ```
    Note: Use `v` prefix for tags (e.g., `v0.2.0`)
 
-7. **Push changes**
+8. **Push changes**
    ```bash
    git push origin master
    git push origin vX.Y.Z
