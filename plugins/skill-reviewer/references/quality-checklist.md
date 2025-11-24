@@ -447,51 +447,58 @@ Run the tool:
 
 ---
 
-## 9. Ownership & Maintenance
+## 9. Ownership & Maintenance (Optional)
 
-**What to check**: Version/date, changelog, known limitations, maintainer info.
+**What to check**: Known limitations documented. Version/maintainer metadata optional but recommended for team/public skills.
 
-**Good example**:
+**Note**: Marketplace-level changelogs (changelogs/skill-name.md) are required per marketplace standards and provide versioning at the marketplace level. The Version section within SKILL.md itself is optional.
+
+**When to include version metadata in SKILL.md**:
+- Public marketplace skills (helps users track updates)
+- Team-shared skills (clarifies who maintains it)
+- Skills with frequent breaking changes (version tracking important)
+
+**When to skip version metadata in SKILL.md**:
+- Personal skills for individual use
+- Experimental/prototype skills
+- Skills where marketplace changelogs provide sufficient tracking
+
+**Example with optional version metadata**:
 ```markdown
 # API Integration Skill
 
 **Version**: 1.2.0
-**Last Updated**: 2025-11-23
 **Maintainer**: DevTools Team (devtools@example.com)
-
-...
 
 ## Known Limitations
 
 - Rate limited to 100 requests/minute
 - Large file uploads (>10MB) not supported
 - Requires Python 3.8+
-
-## Changelog
-
-### 1.2.0 (2025-11-23)
-- Add batch request support
-- Fix timeout handling
-
-### 1.1.0 (2025-10-15)
-- Add retry logic
-- Improve error messages
 ```
 
-**Why it matters**: Users need to know who to contact, what's supported, and what limitations exist.
+**Minimal example (recommended for most skills)**:
+```markdown
+# Simple Helper Skill
 
-**Ownership elements**:
-- **Version**: Current version number
-- **Date**: Last update date
-- **Maintainer**: Contact info
-- **Limitations**: Known constraints
-- **Changelog**: Version history
+## Known Limitations
+
+- Works only on Linux/macOS
+- Requires bash 4.0+
+```
+
+**Why it matters**: Known limitations help users understand constraints. Version metadata in SKILL.md is helpful for team coordination but optional.
+
+**Core elements**:
+- **Known Limitations** (recommended): Document constraints and requirements
+- **Version** (optional): Current version number
+- **Maintainer** (optional): Contact info for questions
+- **Changelog** (optional in SKILL.md): Can reference marketplace changelog or references/
 
 **Review questions**:
-- Is version/date present?
-- Is maintainer or contact info provided?
-- Are known limitations documented?
-- Is there guidance for extending/updating?
+- Are known limitations or requirements documented?
+- If version metadata is present, is it complete and current?
+- If this is a team skill, is maintainer contact info provided?
 
 ---
 

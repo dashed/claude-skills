@@ -29,14 +29,17 @@ The session registry eliminates repetitive socket/target specification through a
 ./tools/cleanup-sessions.sh
 ```
 
-After starting a session, ALWAYS tell the user how to monitor it by giving them a command to copy/paste:
+After starting a session, ALWAYS tell the user how to monitor it by giving them a command to copy/paste (substitute actual values from the session you created):
 
 ```
 To monitor this session yourself:
   ./tools/list-sessions.sh
 
 Or attach directly:
-  tmux -S /tmp/claude-tmux-sockets/claude.sock attach -t claude-python
+  tmux -S <socket> attach -t <session-name>
+
+Or to capture the output once:
+  tmux -S <socket> capture-pane -p -J -t <session-name>:0.0 -S -200
 ```
 
 This must ALWAYS be printed right after a session was started and once again at the end of the tool loop. But the earlier you send it, the happier the user will be.
@@ -454,60 +457,16 @@ SOCKET="$SOCKET_DIR/claude.sock"
 ./tools/pane-health.sh -S "$SOCKET" -t "$SESSION":0.0
 ```
 
-## Alternative: Manual Socket Management
+## Advanced: Direct Socket Control
 
-For advanced use cases requiring explicit control over socket paths and session management, you can bypass the session registry and manage sessions manually.
+For advanced users who need explicit control over socket paths without using the session registry, see the [Direct Socket Control](references/direct-socket-control.md) reference.
 
-**When to use manual socket management:**
+This is useful for:
 - Custom socket isolation requirements
 - Integration with existing tmux workflows
-- Multiple sessions on different sockets with complex routing
 - Testing or debugging tmux configuration
 
-### Manual Setup
-
-```bash
-SOCKET_DIR=${TMPDIR:-/tmp}/claude-tmux-sockets  # well-known dir for all agent sockets
-mkdir -p "$SOCKET_DIR"
-SOCKET="$SOCKET_DIR/claude.sock"                # keep agent sessions separate from your personal tmux
-SESSION=claude-python                           # slug-like names; avoid spaces
-tmux -S "$SOCKET" new -d -s "$SESSION" -n shell
-tmux -S "$SOCKET" send-keys -t "$SESSION":0.0 -- 'PYTHON_BASIC_REPL=1 python3 -q' Enter
-tmux -S "$SOCKET" capture-pane -p -J -t "$SESSION":0.0 -S -200  # watch output
-tmux -S "$SOCKET" kill-session -t "$SESSION"                   # clean up
-```
-
-After starting a session, ALWAYS tell the user how to monitor it:
-
-```
-To monitor this session yourself:
-  tmux -S "$SOCKET" attach -t claude-python
-
-Or to capture the output once:
-  tmux -S "$SOCKET" capture-pane -p -J -t claude-python:0.0 -S -200
-```
-
-### Socket Convention
-
-- Agents MUST place tmux sockets under `CLAUDE_TMUX_SOCKET_DIR` (defaults to `${TMPDIR:-/tmp}/claude-tmux-sockets`) and use `tmux -S "$SOCKET"` so we can enumerate/clean them. Create the dir first: `mkdir -p "$CLAUDE_TMUX_SOCKET_DIR"`.
-- Default socket path to use unless you must isolate further: `SOCKET="$CLAUDE_TMUX_SOCKET_DIR/claude.sock"`.
-
-### Targeting Panes and Naming
-
-- Target format: `{session}:{window}.{pane}`, defaults to `:0.0` if omitted. Keep names short (e.g., `claude-py`, `claude-gdb`).
-- Use `-S "$SOCKET"` consistently to stay on the private socket path. If you need user config, drop `-f /dev/null`; otherwise `-f /dev/null` gives a clean config.
-- Inspect: `tmux -S "$SOCKET" list-sessions`, `tmux -S "$SOCKET" list-panes -a`.
-
-### Finding Sessions Manually
-
-- List sessions on a specific socket: `./tools/find-sessions.sh -S "$SOCKET"`; add `-q partial-name` to filter.
-- Scan all sockets: `./tools/find-sessions.sh --all` (uses `CLAUDE_TMUX_SOCKET_DIR`)
-
-### Direct tmux send-keys
-
-- Prefer literal sends to avoid shell splitting: `tmux -S "$SOCKET" send-keys -t target -l -- "$cmd"`
-- When composing inline commands, use single quotes or ANSI C quoting to avoid expansion: `tmux ... send-keys -t target -- $'python3 -m http.server 8000'`.
-- To send control keys: `tmux ... send-keys -t target C-c`, `C-d`, `C-z`, `Escape`, etc.
+Most workflows should use the session registry tools described above.
 
 ## Best Practices
 

@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.2.1] - 2025-11-23
+
+### Changed
+- Moved "Alternative: Manual Socket Management" section to references/direct-socket-control.md for better progressive disclosure
+- Renamed section from "Alternative" to "Advanced: Direct Socket Control" to strengthen mental model
+- Reduced SKILL.md from ~553 to ~508 lines (8% reduction)
+- Added references/direct-socket-control.md with comprehensive manual socket management documentation
+- Strengthened mental model positioning: session registry as canonical approach, direct socket control as advanced option
+- Added comparison table and migration guide to direct-socket-control.md reference
+
 ## [1.2.0] - 2025-11-23
 
 ### Changed

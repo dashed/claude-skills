@@ -37,7 +37,7 @@ Review against these core quality criteria:
 6. **Resource Hygiene** - References current, minimal, discoverable
 7. **Consistency** - Terminology and flow clear and unambiguous
 8. **Testing Guidance** - Verification steps or examples included
-9. **Ownership** - Version/changelog/maintainer documented
+9. **Ownership (Optional)** - Known limitations documented; version/maintainer optional
 10. **Tight Scope** - Focused purpose, no feature creep
 
 ### 3. Document Findings
@@ -198,7 +198,7 @@ After completing a review, verify the process worked correctly:
 
 ## Version
 
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Last Updated**: 2025-11-23
 **Maintainer**: Alberto Leal (mail4alberto@gmail.com)
 **Changelog**: See [changelogs/skill-reviewer.md](../../changelogs/skill-reviewer.md)

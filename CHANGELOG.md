@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2025-11-23
+
+### Changed
+- tmux skill: Moved "Alternative" section to references/direct-socket-control.md (progressive disclosure pattern)
+- tmux skill: Renamed "Alternative: Manual Socket Management" to "Advanced: Direct Socket Control" (mental model strengthening)
+- tmux skill: Reduced SKILL.md by 8% for improved conciseness and focus
+- tmux skill: Version bumped to 1.2.1
+- skill-reviewer skill: Relaxed Ownership criterion from required to optional
+- skill-reviewer skill: Updated quality standards to make SKILL.md version sections optional while marketplace changelogs remain required
+- skill-reviewer skill: Enhanced quality-checklist.md with guidance on when to include/skip version metadata
+- skill-reviewer skill: Version bumped to 1.1.0
+
 ## [0.5.0] - 2025-11-23
 
 ### Added
@@ -137,7 +149,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Marketplace metadata and owner information
 - Plugin entry with `skills` field for proper skill loading
 
-[Unreleased]: https://github.com/dashed/claude-marketplace/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/dashed/claude-marketplace/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/dashed/claude-marketplace/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/dashed/claude-marketplace/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/dashed/claude-marketplace/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/dashed/claude-marketplace/compare/v0.2.0...v0.3.0

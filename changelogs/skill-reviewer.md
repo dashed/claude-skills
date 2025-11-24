@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-11-23
+
+### Changed
+- Relaxed Ownership criterion from required to optional for greater flexibility
+- Updated 10-point checklist in SKILL.md: "Ownership" → "Ownership (Optional) - Known limitations documented; version/maintainer optional"
+- Updated references/quality-checklist.md with detailed guidance on when to include/skip version metadata in SKILL.md
+- Clarified distinction: marketplace changelogs (changelogs/skill-name.md) remain required, SKILL.md version sections are now optional
+- Added examples for both "with version metadata" and "minimal" documentation approaches
+- Emphasized known limitations documentation as the key recommended element
+
 ## [1.0.0] - 2025-11-23
 
 ### Added
