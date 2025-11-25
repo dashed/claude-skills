@@ -27,12 +27,17 @@ Use fzf when:
 
 ## Prerequisites
 
-**Verify installation:**
+**CRITICAL**: Before proceeding, you MUST verify that fzf is installed:
+
 ```bash
 fzf --version
 ```
 
-**If not installed:**
+**If fzf is not installed:**
+- **DO NOT** attempt to install it automatically
+- **STOP** and inform the user that fzf is required
+- **RECOMMEND** manual installation with the following instructions:
+
 ```bash
 # macOS
 brew install fzf
@@ -46,15 +51,17 @@ sudo pacman -S fzf
 # From source
 git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 ~/.fzf/install
+
+# Other systems: see https://github.com/junegunn/fzf#installation
 ```
+
+**If fzf is not available, exit gracefully and do not proceed with the workflow below.**
 
 ## Shell Integration
 
-**CRITICAL**: Set up shell integration for the best experience.
+fzf provides shell integration that enables powerful keybindings (CTRL-T, CTRL-R, ALT-C) and fuzzy completion (`**<TAB>`). These features require the user to configure their shell.
 
-### Setup
-
-Add to your shell configuration:
+**Note:** Shell integration setup is the user's responsibility. If keybindings don't work, **RECOMMEND** the user add the appropriate line to their shell config:
 
 ```bash
 # Bash (~/.bashrc)
@@ -67,7 +74,7 @@ source <(fzf --zsh)
 fzf --fish | source
 ```
 
-### Key Bindings
+### Key Bindings (requires shell integration)
 
 | Key | Function | Description |
 |-----|----------|-------------|
@@ -410,10 +417,14 @@ For detailed documentation on advanced features, see:
 
 ## Troubleshooting
 
-**Shell keybindings not working:**
-- Ensure shell integration is sourced in your config
+**"Command not found: fzf"**
+- fzf is not installed. See Prerequisites section for manual installation instructions
+- Do NOT attempt automatic installation
+
+**Shell keybindings not working (CTRL-T, CTRL-R, ALT-C):**
+- Shell integration must be configured by the user
+- RECOMMEND adding the appropriate line to shell config (see Shell Integration section)
 - For bash, must be sourced after any PS1 modifications
-- Try: `eval "$(fzf --bash)"` or `source <(fzf --zsh)`
 
 **Performance issues:**
 - Avoid `--ansi` in `FZF_DEFAULT_OPTS` (slows initial scan)
