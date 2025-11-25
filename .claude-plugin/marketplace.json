@@ -166,6 +166,29 @@
       ],
       "strict": false,
       "skills": ["./"]
+    },
+    {
+      "name": "fzf",
+      "version": "1.0.0",
+      "source": "./plugins/fzf",
+      "description": "Command-line fuzzy finder for interactive filtering. Use when searching files, command history (CTRL-R), creating interactive menus, or integrating with ripgrep, fd, and git. Triggers on fzf, fuzzy finder, ** completion, or CTRL-T/CTRL-R/ALT-C keybindings.",
+      "author": {
+        "name": "Alberto Leal"
+      },
+      "repository": "https://github.com/dashed/claude-marketplace/tree/master/plugins/fzf",
+      "license": "MIT",
+      "keywords": [
+        "fzf",
+        "fuzzy",
+        "search",
+        "filter",
+        "interactive",
+        "shell",
+        "cli",
+        "completion"
+      ],
+      "strict": false,
+      "skills": ["./"]
     }
   ]
 }

@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- fzf skill: Command-line fuzzy finder for interactive filtering of any list
+- fzf skill: Comprehensive SKILL.md covering shell integration, search syntax, preview windows, event bindings
+- fzf skill: references/actions.md - Complete list of bindable actions and events
+- fzf skill: references/options.md - Full command-line options reference
+- fzf skill: references/integrations.md - ripgrep, fd, bat, git, docker, kubernetes integration recipes
 - jj skill: Jujutsu (jj) version control system - Git-compatible VCS with novel features
 - jj skill: Comprehensive SKILL.md with key concepts, essential commands, workflows, troubleshooting
 - jj skill: references/revsets.md - Complete revset language reference
