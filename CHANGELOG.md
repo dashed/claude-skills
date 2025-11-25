@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- git-chain skill: Manage and rebase chains of dependent Git branches (stacked branches)
+- git-chain skill: Progressive disclosure structure with references/ directory
+- git-chain skill: references/rebase-options.md with all rebase flags, conflict handling, recovery
+- git-chain skill: references/merge-options.md with all merge flags, strategies, reporting
+- git-chain skill: references/chain-management.md with setup, navigation, organization
+
 ## [0.8.0] - 2025-11-23
 
 ### Added

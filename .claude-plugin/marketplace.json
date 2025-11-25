@@ -78,6 +78,71 @@
       ],
       "strict": false,
       "skills": ["./"]
+    },
+    {
+      "name": "ultrathink",
+      "version": "1.0.0",
+      "source": "./plugins/ultrathink",
+      "description": "Invoke deep sequential thinking for complex problem-solving. Use when the user says 'use ultrathink', 'ultrathink', or when tackling problems that require careful step-by-step reasoning, planning, hypothesis generation, or multi-step analysis.",
+      "author": {
+        "name": "Alberto Leal"
+      },
+      "repository": "https://github.com/dashed/claude-marketplace/tree/master/plugins/ultrathink",
+      "license": "MIT",
+      "keywords": [
+        "thinking",
+        "reasoning",
+        "sequential",
+        "planning",
+        "analysis",
+        "problem-solving"
+      ],
+      "strict": false,
+      "skills": ["./"]
+    },
+    {
+      "name": "conventional-commits",
+      "version": "1.0.0",
+      "source": "./plugins/conventional-commits",
+      "description": "Format git commit messages following Conventional Commits 1.0.0 specification. Use when the user asks to commit changes, create a git commit, or mentions committing code. Ensures consistent, semantic commit messages that support automated changelog generation and semantic versioning.",
+      "author": {
+        "name": "Alberto Leal"
+      },
+      "repository": "https://github.com/dashed/claude-marketplace/tree/master/plugins/conventional-commits",
+      "license": "MIT",
+      "keywords": [
+        "git",
+        "commits",
+        "conventional-commits",
+        "changelog",
+        "semver",
+        "versioning"
+      ],
+      "strict": false,
+      "skills": ["./"]
+    },
+    {
+      "name": "git-chain",
+      "version": "1.0.0",
+      "source": "./plugins/git-chain",
+      "description": "Manage and rebase chains of dependent Git branches (stacked branches). Use when working with multiple dependent PRs, feature branches that build on each other, or maintaining clean branch hierarchies. Automates rebasing or merging entire branch chains.",
+      "author": {
+        "name": "Alberto Leal"
+      },
+      "repository": "https://github.com/dashed/claude-marketplace/tree/master/plugins/git-chain",
+      "license": "MIT",
+      "keywords": [
+        "git",
+        "workflow",
+        "branches",
+        "stacked",
+        "rebase",
+        "merge",
+        "chain",
+        "dependent"
+      ],
+      "strict": false,
+      "skills": ["./"]
     }
   ]
 }
