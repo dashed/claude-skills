@@ -13,8 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Three operation modes: registry lookup (-s), explicit socket/target (-S/-t), auto-detect
 - Dry-run mode (--dry-run) for previewing kill operations without executing
 - Verbose mode (-v) for detailed operation logging
-- Comprehensive test suite for kill-session.sh (24 plugin-level tests in plugins/tmux/tests/test-kill-session.sh, all passing)
-- Marketplace-level test suite for kill-session.sh (17 tests in tests/bash/test-kill-session.sh, all passing)
+- Comprehensive test suite for kill-session.sh (12 tests in tests/bash/test-kill-session.sh, all passing)
 - Exit code conventions: 0=complete success, 1=partial success, 2=complete failure, 3=invalid arguments
 - Auto-detect mode for killing single session without specifying session name
 - Makefile integration for kill-session tests (test-kill-session target)
