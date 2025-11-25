@@ -245,6 +245,240 @@ make validate  # Must pass before release
 4. Run full validation suite: `make validate-strict`
 5. Create release commit and tag
 
+## Creating a New Skill
+
+This section documents the conventions for adding a new skill to the marketplace.
+
+### Quick Reference Checklist
+
+When adding a new skill:
+
+1. [ ] Create `plugins/<skill-name>/` directory
+2. [ ] Create `SKILL.md` with YAML frontmatter
+3. [ ] Create `references/` directory (if needed for advanced docs)
+4. [ ] Add plugin entry to `.claude-plugin/marketplace.json`
+5. [ ] Create `changelogs/<skill-name>.md`
+6. [ ] Update `CHANGELOG.md` under `## [Unreleased]`
+7. [ ] Run `make validate`
+
+### Plugin Directory Structure
+
+```
+plugins/<skill-name>/
+├── SKILL.md              (required)
+├── references/           (optional - for detailed documentation)
+│   ├── advanced-usage.md
+│   └── configuration.md
+├── scripts/              (optional - executable code)
+└── assets/               (optional - templates, images)
+```
+
+**Naming**: Use kebab-case for directory names (e.g., `git-chain`, `skill-creator`).
+
+### SKILL.md Format
+
+Every skill requires a `SKILL.md` file with YAML frontmatter and markdown body.
+
+#### YAML Frontmatter (Required)
+
+```yaml
+---
+name: skill-name
+description: Brief description of what the skill does. Use when [specific triggers]. Include contexts that should activate this skill.
+---
+```
+
+**Field requirements:**
+- `name`: Required. Kebab-case, lowercase letters, numbers, hyphens only. Max 64 characters.
+  - Pattern: `^[a-z0-9]+(-[a-z0-9]+)*$`
+  - Examples: `git-chain`, `pdf-editor`, `skill-creator`
+- `description`: Required. 20-1024 characters.
+  - **Must include "Use when..." triggers** - This is the primary mechanism for skill activation
+  - Claude reads only the frontmatter to decide when to use a skill
+  - Be specific about contexts that should trigger the skill
+
+**Good description example:**
+```yaml
+description: Manage and rebase chains of dependent Git branches (stacked branches). Use when working with multiple dependent PRs, feature branches that build on each other, or maintaining clean branch hierarchies. Automates rebasing or merging entire branch chains.
+```
+
+#### Markdown Body
+
+The body is loaded only AFTER the skill triggers. Structure it for the task at hand:
+
+**Recommended sections:**
+1. Overview - What the skill does
+2. When to Use - Specific scenarios (reinforces frontmatter)
+3. Prerequisites - Required tools/setup
+4. Basic Workflow - Common usage patterns
+5. Core Commands/Reference - Quick reference table
+6. Advanced Usage - Link to `references/` for details
+7. Troubleshooting - Common issues and solutions
+
+**Important guidelines:**
+- Keep SKILL.md under 500 lines to minimize context bloat
+- Use progressive disclosure - link to `references/` for advanced content
+- Challenge each paragraph: "Does Claude really need this?"
+- Prefer concise examples over verbose explanations
+
+### Progressive Disclosure Pattern
+
+Keep the main SKILL.md focused on common use cases. Move detailed documentation to `references/`:
+
+```
+plugins/git-chain/
+├── SKILL.md                      (common workflows, ~200 lines)
+└── references/
+    ├── rebase-options.md         (all rebase flags and options)
+    ├── merge-options.md          (all merge flags and strategies)
+    └── chain-management.md       (advanced chain operations)
+```
+
+**In SKILL.md, link to references:**
+```markdown
+## Advanced Usage
+
+For comprehensive coverage of all flags and advanced patterns, see:
+- [references/rebase-options.md](references/rebase-options.md)
+- [references/merge-options.md](references/merge-options.md)
+```
+
+**Guidelines:**
+- Keep references one level deep from SKILL.md
+- Include table of contents in longer reference files (>100 lines)
+- Reference files should be self-contained and focused on one topic
+
+### marketplace.json Plugin Entry
+
+Add an entry to `.claude-plugin/marketplace.json` under the `plugins` array:
+
+```json
+{
+  "name": "skill-name",
+  "version": "1.0.0",
+  "source": "./plugins/skill-name",
+  "description": "Brief description with Use when triggers. Max 500 chars.",
+  "author": {
+    "name": "Author Name"
+  },
+  "repository": "https://github.com/dashed/claude-marketplace/tree/master/plugins/skill-name",
+  "license": "MIT",
+  "keywords": ["keyword1", "keyword2", "keyword3"],
+  "strict": false,
+  "skills": ["./"]
+}
+```
+
+**Field reference:**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Kebab-case identifier, must match directory name |
+| `source` | Yes | Relative path starting with `./` |
+| `version` | Recommended | Semantic version (e.g., `1.0.0`) |
+| `description` | Recommended | 10-500 chars, include "Use when" triggers |
+| `author.name` | Recommended | Author or maintainer name |
+| `repository` | Recommended | URL to skill source in marketplace |
+| `license` | Recommended | SPDX identifier (MIT, Apache-2.0, etc.) |
+| `keywords` | Recommended | Array of discovery tags |
+| `strict` | Recommended | Set to `false` for most skills |
+| `skills` | Recommended | Array of skill directories, typically `["./"]` |
+
+### Skill Changelog
+
+Create `changelogs/<skill-name>.md` for each new skill:
+
+```markdown
+# Changelog - skill-name
+
+All notable changes to the skill-name skill in this marketplace will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## [1.0.0] - YYYY-MM-DD
+
+### Added
+- Initial addition to marketplace
+- Description of what the skill provides
+- List key features and documentation included
+```
+
+### Main CHANGELOG.md Update
+
+Add entries under `## [Unreleased]` in the main `CHANGELOG.md`:
+
+```markdown
+## [Unreleased]
+
+### Added
+- skill-name skill: Brief description of the skill
+- skill-name skill: Notable features or documentation
+```
+
+**Format:** Prefix each line with `skill-name skill:` to clearly identify skill-specific changes.
+
+### Validation
+
+Always run validation before committing:
+
+```bash
+make validate
+```
+
+This checks:
+- File structure (plugin directories, required files)
+- JSON manifest validity (marketplace.json schema compliance)
+- YAML frontmatter (SKILL.md frontmatter schema compliance)
+
+All checks must pass before the skill can be released.
+
+### Example: Adding a New Skill
+
+Complete example of adding a `pdf-editor` skill:
+
+**1. Create directory structure:**
+```bash
+mkdir -p plugins/pdf-editor/references
+```
+
+**2. Create SKILL.md:**
+```markdown
+---
+name: pdf-editor
+description: Edit and manipulate PDF files. Use when rotating pages, extracting text, merging documents, or performing other PDF operations.
+---
+
+# PDF Editor
+
+## Overview
+...
+```
+
+**3. Add to marketplace.json:**
+```json
+{
+  "name": "pdf-editor",
+  "version": "1.0.0",
+  "source": "./plugins/pdf-editor",
+  "description": "Edit and manipulate PDF files. Use when rotating, extracting, merging, or modifying PDFs.",
+  "author": { "name": "Your Name" },
+  "repository": "https://github.com/dashed/claude-marketplace/tree/master/plugins/pdf-editor",
+  "license": "MIT",
+  "keywords": ["pdf", "document", "editing"],
+  "strict": false,
+  "skills": ["./"]
+}
+```
+
+**4. Create changelogs/pdf-editor.md**
+
+**5. Update CHANGELOG.md under [Unreleased]**
+
+**6. Validate:**
+```bash
+make validate
+```
+
 ## Repository Information
 
 - **Repository**: https://github.com/dashed/claude-marketplace
