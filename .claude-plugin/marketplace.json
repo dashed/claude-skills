@@ -143,6 +143,29 @@
       ],
       "strict": false,
       "skills": ["./"]
+    },
+    {
+      "name": "jj",
+      "version": "1.0.0",
+      "source": "./plugins/jj",
+      "description": "Jujutsu (jj) version control system - a Git-compatible VCS with novel features. Use when working with jj repositories, managing stacked commits, needing automatic rebasing with first-class conflict handling, using revsets to select commits, or wanting enhanced Git workflows. Triggers on mentions of 'jj', 'jujutsu', change IDs, or operation log.",
+      "author": {
+        "name": "Alberto Leal"
+      },
+      "repository": "https://github.com/dashed/claude-marketplace/tree/master/plugins/jj",
+      "license": "MIT",
+      "keywords": [
+        "jj",
+        "jujutsu",
+        "vcs",
+        "version-control",
+        "git",
+        "revsets",
+        "bookmarks",
+        "conflicts"
+      ],
+      "strict": false,
+      "skills": ["./"]
     }
   ]
 }

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- jj skill: Jujutsu (jj) version control system - Git-compatible VCS with novel features
+- jj skill: Comprehensive SKILL.md with key concepts, essential commands, workflows, troubleshooting
+- jj skill: references/revsets.md - Complete revset language reference
+- jj skill: references/commands.md - Full command reference organized by category
+- jj skill: references/git-comparison.md - Git to jj command mapping and workflow comparisons
+- jj skill: references/configuration.md - Configuration, templates, filesets, aliases reference
 - git-chain skill: Manage and rebase chains of dependent Git branches (stacked branches)
 - git-chain skill: Progressive disclosure structure with references/ directory
 - git-chain skill: references/rebase-options.md with all rebase flags, conflict handling, recovery
