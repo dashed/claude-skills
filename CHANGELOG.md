@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - fzf skill: Command-line fuzzy finder for interactive filtering of any list
+- tmux skill: Interactive git recipe for `git add -p`, `git stash -p`, `git checkout -p`, `git reset -p` workflows
 - fzf skill: Comprehensive SKILL.md covering shell integration, search syntax, preview windows, event bindings
 - fzf skill: references/actions.md - Complete list of bindable actions and events
 - fzf skill: references/options.md - Full command-line options reference
